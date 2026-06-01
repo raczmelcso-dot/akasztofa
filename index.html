@@ -697,6 +697,13 @@
     <div id="guessed-letters"></div>
     <div id="message"></div>
     <div id="keyboard"></div>
+    <!-- Mobil billentyűzet gomb -->
+    <button id="mobile-kb-btn" onclick="openMobileInput()" style="display:none; align-items:center; gap:6px; background:var(--hint-bg); border:1.5px solid var(--btn-border); border-radius:10px; padding:8px 18px; font-size:0.9rem; color:var(--muted); cursor:pointer;">
+      ⌨️ Billentyűzet megnyitása
+    </button>
+    <!-- Rejtett input mobilhoz -->
+    <input id="mobile-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      style="position:fixed; opacity:0; pointer-events:none; top:50%; left:50%; width:1px; height:1px;" />
     <div class="btn-row">
       <button id="retry-btn"  class="action-btn red"  onclick="retryLevel()">Újra próbálom</button>
       <button id="menu-btn"   class="action-btn grey" onclick="goToMenu()">Menü</button>
@@ -2263,6 +2270,32 @@
     if (alphabet.includes(letter)) guess(letter);
   });
 
+  // ── MOBIL BILLENTYŰZET ──
+  function isMobile() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  }
+
+  function openMobileInput() {
+    const inp = document.getElementById("mobile-input");
+    inp.style.pointerEvents = "auto";
+    inp.focus();
+    inp.style.pointerEvents = "none";
+  }
+
+  const mobileInput = document.getElementById("mobile-input");
+  mobileInput.addEventListener("input", (e) => {
+    const val = mobileInput.value.toLowerCase();
+    mobileInput.value = "";
+    if (val && alphabet.includes(val[val.length - 1])) {
+      guess(val[val.length - 1]);
+    }
+  });
+
+  // Mobilon mutassuk a billentyűzet gombot
+  if (isMobile()) {
+    document.getElementById("mobile-kb-btn").style.display = "flex";
+  }
+
   goToMenu();
 
   // ── SZERENCSEKERÉK ──
@@ -2431,7 +2464,6 @@
 
   function saveStats(playerId, stats) {
     localStorage.setItem("stats_" + playerId, JSON.stringify(stats));
-    // Firebase-be is mentjük
     if (firebaseOk) db.ref("stats/" + playerId).set(stats);
   }
 
@@ -2445,36 +2477,28 @@
     s.timerWins     = (s.timerWins     || 0) + (timerWin ? 1 : 0);
     s.totalMistakes = (s.totalMistakes || 0) + mistakes;
     s.bestStreak    = Math.max(s.bestStreak || 0, streak);
-    // Kategória számláló
     if (!s.categories) s.categories = {};
     s.categories[category] = (s.categories[category] || 0) + (won ? 1 : 0);
     saveStats(p.id, s);
   }
 
-  function openStats(playerId, e) {
-    if (e) e.stopPropagation();
-    const p = players.find(x => x.id === playerId);
-    if (!p) return;
-    const s = getStats(playerId);
+  function renderStatsData(p, s) {
     document.getElementById("stats-player-name").textContent =
       genderEmoji(p.gender) + " " + p.name + " · " + getPlayerTitle(p.coins).label;
-
-    // Fő statisztikák
     const grid = document.getElementById("stats-grid");
     const winRate = s.totalPlayed > 0
       ? Math.round((s.totalWon / s.totalPlayed) * 100) : 0;
-    const avgMistakes = s.totalWon > 0
+    const avgMistakes = s.totalPlayed > 0
       ? (s.totalMistakes / s.totalPlayed).toFixed(1) : "–";
-
     grid.innerHTML = [
-      { icon: "🎮", value: s.totalPlayed  || 0, label: "Összes szint",       cls: "" },
-      { icon: "✅", value: s.totalWon     || 0, label: "Megoldott szó",      cls: "" },
-      { icon: "🔥", value: s.bestStreak   || 0, label: "Legjobb sorozat",    cls: "highlight" },
-      { icon: "💎", value: winRate + "%",        label: "Sikerességi arány", cls: "" },
-      { icon: "✨", value: s.perfectWins  || 0, label: "Hibátlan szint",     cls: "" },
-      { icon: "⏱️", value: s.timerWins    || 0, label: "Időre teljesítve",   cls: "" },
-      { icon: "💀", value: s.totalMistakes|| 0, label: "Összes hiba",        cls: "" },
-      { icon: "📈", value: avgMistakes,          label: "Átlag hiba/szint",  cls: "" },
+      { icon: "🎮", value: s.totalPlayed   || 0, label: "Összes szint",      cls: "" },
+      { icon: "✅", value: s.totalWon      || 0, label: "Megoldott szó",     cls: "" },
+      { icon: "🔥", value: s.bestStreak    || 0, label: "Legjobb sorozat",   cls: "highlight" },
+      { icon: "💎", value: winRate + "%",         label: "Sikerességi arány",cls: "" },
+      { icon: "✨", value: s.perfectWins   || 0, label: "Hibátlan szint",    cls: "" },
+      { icon: "⏱️", value: s.timerWins     || 0, label: "Időre teljesítve",  cls: "" },
+      { icon: "💀", value: s.totalMistakes || 0, label: "Összes hiba",       cls: "" },
+      { icon: "📈", value: avgMistakes,           label: "Átlag hiba/szint", cls: "" },
     ].map(item =>
       '<div class="stat-card ' + item.cls + '">' +
         '<div class="stat-icon">'  + item.icon  + '</div>' +
@@ -2482,15 +2506,12 @@
         '<div class="stat-label">' + item.label + '</div>' +
       '</div>'
     ).join("");
-
-    // Kategória lista
     const catList = document.getElementById("stats-cat-list");
     const cats = s.categories || {};
     const maxCat = Math.max(...Object.values(cats), 1);
-    const catEntries = Object.entries(categoryInfo).map(([key, info]) => ({
-      key, info, count: cats[key] || 0
-    })).sort((a, b) => b.count - a.count);
-
+    const catEntries = Object.entries(categoryInfo)
+      .map(([key, info]) => ({ key, info, count: cats[key] || 0 }))
+      .sort((a, b) => b.count - a.count);
     if (catEntries.every(c => c.count === 0)) {
       catList.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);text-align:center">Még nincs adat.</p>';
     } else {
@@ -2504,8 +2525,42 @@
         '</div>'
       ).join("");
     }
-
     document.getElementById("stats-modal").style.display = "flex";
+  }
+
+  function openStats(playerId, e) {
+    if (e) e.stopPropagation();
+    const p = players.find(x => x.id === playerId);
+    if (!p) return;
+
+    if (firebaseOk) {
+      // Firebase-ből töltjük be — így más gépről is látható
+      db.ref("stats/" + playerId).once("value").then(snapshot => {
+        const fbStats = snapshot.val() || {};
+        const localStats = getStats(playerId);
+        // Mergeljük: amelyik nagyobb értéket vesszük
+        const merged = {};
+        ["totalPlayed","totalWon","perfectWins","timerWins","totalMistakes","bestStreak"].forEach(k => {
+          merged[k] = Math.max(fbStats[k] || 0, localStats[k] || 0);
+        });
+        merged.categories = {};
+        const allCats = new Set([
+          ...Object.keys(fbStats.categories    || {}),
+          ...Object.keys(localStats.categories || {})
+        ]);
+        allCats.forEach(cat => {
+          merged.categories[cat] = Math.max(
+            (fbStats.categories    || {})[cat] || 0,
+            (localStats.categories || {})[cat] || 0
+          );
+        });
+        // Mentjük vissza a mergelt adatot
+        saveStats(playerId, merged);
+        renderStatsData(p, merged);
+      }).catch(() => renderStatsData(p, getStats(playerId)));
+    } else {
+      renderStatsData(p, getStats(playerId));
+    }
   }
 
   function closeStats() {
