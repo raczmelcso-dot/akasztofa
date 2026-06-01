@@ -359,6 +359,66 @@
     }
     .stats-btn:hover { background: var(--hint-bg); }
 
+    /* ── JELVÉNYEK ── */
+    .badge-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 8px; margin-top: 4px;
+    }
+    .badge-item {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 8px 4px; border-radius: 10px;
+      border: 1.5px solid var(--card-border);
+      background: var(--hint-bg); text-align: center;
+      transition: transform 0.15s;
+    }
+    .badge-item.earned {
+      border-color: #f39c12;
+      background: linear-gradient(135deg, #fff8e1, #ffeaa0);
+    }
+    body.dark .badge-item.earned { background: linear-gradient(135deg, #2a1e08, #3a2a10); }
+    .badge-item.locked { opacity: 0.35; filter: grayscale(1); }
+    .badge-icon  { font-size: 1.5rem; line-height: 1; }
+    .badge-name  { font-size: 0.65rem; font-weight: bold; color: var(--text); }
+    .badge-desc  { font-size: 0.6rem; color: var(--muted); }
+    /* Jelvény szerzés animáció */
+    #badge-toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+      color: #fff; border-radius: 16px; padding: 12px 20px;
+      font-size: 0.95rem; font-weight: bold; z-index: 1000;
+      box-shadow: 0 4px 20px rgba(243,156,18,0.4);
+      opacity: 0; transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none; text-align: center; white-space: nowrap;
+    }
+    #badge-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── CHAT ÉRTESÍTÉS ── */
+    #chat-notif {
+      position: fixed; bottom: 20px; right: 16px;
+      background: var(--card-bg); border: 1.5px solid #27ae60;
+      border-radius: 14px; padding: 10px 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      z-index: 1000; max-width: 260px;
+      display: none; flex-direction: column; gap: 4px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(120%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    #chat-notif .notif-header {
+      font-size: 0.75rem; color: var(--muted); font-weight: bold;
+    }
+    #chat-notif .notif-body {
+      font-size: 0.9rem; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #chat-notif .notif-close {
+      position: absolute; top: 6px; right: 10px;
+      background: none; border: none; cursor: pointer;
+      font-size: 0.9rem; color: var(--muted);
+    }
+
     /* ── AVATÁR VÁLASZTÓ ── */
     .avatar-grid {
       display: grid; grid-template-columns: repeat(6, 1fr);
@@ -425,6 +485,25 @@
       font-size: 0.85rem; color: var(--muted); text-align: center;
       font-style: italic;
     }
+    /* Emoji panel */
+    #emoji-panel {
+      display: none; flex-wrap: wrap; gap: 4px;
+      background: var(--hint-bg); border: 1.5px solid var(--hint-border);
+      border-radius: 10px; padding: 8px; max-height: 120px; overflow-y: auto;
+    }
+    .emoji-pick {
+      font-size: 1.3rem; cursor: pointer; padding: 3px;
+      border-radius: 6px; transition: background 0.1s, transform 0.1s;
+      line-height: 1;
+    }
+    .emoji-pick:hover { background: var(--card-border); transform: scale(1.2); }
+    #emoji-toggle-btn {
+      padding: 8px 10px; background: var(--hint-bg);
+      border: 1.5px solid var(--btn-border); border-radius: 10px;
+      font-size: 1.1rem; cursor: pointer; transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    #emoji-toggle-btn:hover { background: var(--back-hover); }
     /* New player form */
     #new-player-form {
       display: none; flex-direction: column; gap: 10px; margin-top: 4px;
@@ -543,6 +622,12 @@
 <body>
 <button id="theme-toggle" onclick="toggleTheme()" title="Téma váltás">🌙</button>
 <canvas id="confetti-canvas"></canvas>
+<div id="badge-toast"></div>
+<div id="chat-notif" style="display:none; position:fixed; bottom:20px; right:16px;">
+  <button class="notif-close" onclick="closeChatNotif()">✕</button>
+  <div class="notif-header">💬 Új üzenet</div>
+  <div class="notif-body" id="notif-body"></div>
+</div>
 
 <!-- PIN modal -->
 <div id="pin-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
@@ -568,6 +653,10 @@
     <div>
       <p style="font-size:0.85rem; font-weight:bold; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">Kategóriánként</p>
       <div class="stats-cat-list" id="stats-cat-list"></div>
+    </div>
+    <div>
+      <p style="font-size:0.85rem; font-weight:bold; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">🏅 Jelvények</p>
+      <div class="badge-grid" id="stats-badge-grid"></div>
     </div>
     <button class="stats-close-btn" onclick="closeStats()">Bezárás</button>
   </div>
@@ -612,7 +701,9 @@
     <div id="chat-messages">
       <p id="chat-no-player">Jelentkezz be egy profillal a chathez!</p>
     </div>
+    <div id="emoji-panel"></div>
     <div class="chat-input-row">
+      <button id="emoji-toggle-btn" onclick="toggleEmojiPanel()" title="Emoji">😊</button>
       <input id="chat-input" type="text" placeholder="Írj valamit..." maxlength="120"
         onkeydown="if(event.key==='Enter') sendChat()" />
       <button id="chat-send-btn" onclick="sendChat()">Küld</button>
@@ -2449,6 +2540,7 @@
 
   goToMenu();
   initChat();
+  initEmojiPanel();
 
   // ── SZERENCSEKERÉK ──
   const wheelSegments = [
@@ -2635,6 +2727,7 @@
     if (!s.categories) s.categories = {};
     s.categories[category] = (s.categories[category] || 0) + (won ? 1 : 0);
     saveStats(p.id, s);
+    checkBadges(s, p);
   }
 
   function renderStatsData(p, s) {
@@ -2693,9 +2786,8 @@
       ).join("");
     }
     document.getElementById("stats-modal").style.display = "flex";
+    renderBadgeGrid(s);
   }
-
-  function openStats(playerId, e) {
     if (e) e.stopPropagation();
     const p = players.find(x => x.id === playerId);
     if (!p) return;
@@ -2707,9 +2799,13 @@
         const localStats = getStats(playerId);
         // Mergeljük: amelyik nagyobb értéket vesszük
         const merged = {};
-        ["totalPlayed","totalWon","perfectWins","timerWins","totalMistakes","bestStreak"].forEach(k => {
+        ["totalPlayed","totalWon","perfectWins","timerWins","totalMistakes","bestStreak","totalPlayTime"].forEach(k => {
           merged[k] = Math.max(fbStats[k] || 0, localStats[k] || 0);
         });
+        // Jelvények merge
+        const fbBadges    = new Set(fbStats.badges    || []);
+        const localBadges = new Set(localStats.badges || []);
+        merged.badges = [...new Set([...fbBadges, ...localBadges])];
         merged.categories = {};
         const allCats = new Set([
           ...Object.keys(fbStats.categories    || {}),
@@ -2734,15 +2830,132 @@
     document.getElementById("stats-modal").style.display = "none";
   }
 
-  // ── GLOBAL CHAT ──
+  // ── JELVÉNYEK ──
+  const allBadges = [
+    { id: "first_win",     icon: "🌟", name: "Első lépés",    desc: "Első megoldott szó",              check: s => s.totalWon >= 1 },
+    { id: "win10",         icon: "🎯", name: "Tízes",         desc: "10 szó megoldva",                 check: s => s.totalWon >= 10 },
+    { id: "win50",         icon: "🏆", name: "Bajnok",        desc: "50 szó megoldva",                 check: s => s.totalWon >= 50 },
+    { id: "win100",        icon: "👑", name: "Legenda",       desc: "100 szó megoldva",                check: s => s.totalWon >= 100 },
+    { id: "perfect1",      icon: "✨", name: "Hibátlan",      desc: "1 hibátlan szint",                check: s => s.perfectWins >= 1 },
+    { id: "perfect10",     icon: "💎", name: "Tökéletes",     desc: "10 hibátlan szint",               check: s => s.perfectWins >= 10 },
+    { id: "streak5",       icon: "🔥", name: "Sorozat",       desc: "5 szint egyhuzamban",             check: s => s.bestStreak >= 5 },
+    { id: "streak10",      icon: "⚡", name: "Villám",        desc: "10 szint egyhuzamban",            check: s => s.bestStreak >= 10 },
+    { id: "streak20",      icon: "🌪️", name: "Tornádó",       desc: "20 szint egyhuzamban",            check: s => s.bestStreak >= 20 },
+    { id: "timer5",        icon: "⏱️", name: "Gyors ujjak",   desc: "5 időre teljesített szint",       check: s => s.timerWins >= 5 },
+    { id: "coins50",       icon: "🍪", name: "Kekszgyűjtő",   desc: "50 keksz összegyűjtve",           check: (s,p) => (p.coins||0) >= 50 },
+    { id: "coins200",      icon: "🎂", name: "Kekszkirály",   desc: "200 keksz összegyűjtve",          check: (s,p) => (p.coins||0) >= 200 },
+    { id: "allcats",       icon: "🌈", name: "Felfedező",     desc: "Minden kategóriában nyertél",     check: s => Object.keys(s.categories||{}).length >= 7 },
+    { id: "playtime1h",    icon: "🕐", name: "Elkötelezett",  desc: "1 óra játékidő",                  check: s => (s.totalPlayTime||0) >= 3600 },
+    { id: "noerror3",      icon: "🎖️", name: "Mesterlövész",  desc: "3 egymás utáni hibátlan szint",   check: s => s.perfectWins >= 3 },
+  ];
+
+  function checkBadges(stats, player) {
+    const earned = new Set(stats.badges || []);
+    const newOnes = [];
+    allBadges.forEach(b => {
+      if (!earned.has(b.id) && b.check(stats, player)) {
+        earned.add(b.id);
+        newOnes.push(b);
+      }
+    });
+    if (newOnes.length > 0) {
+      stats.badges = [...earned];
+      saveStats(player.id, stats);
+      newOnes.forEach((b, i) => {
+        setTimeout(() => showBadgeToast(b), i * 1500);
+      });
+    }
+    return stats;
+  }
+
+  function showBadgeToast(badge) {
+    const el = document.getElementById("badge-toast");
+    el.textContent = "🏅 Új jelvény: " + badge.icon + " " + badge.name + " — " + badge.desc;
+    el.classList.add("show");
+    playSound("win");
+    setTimeout(() => el.classList.remove("show"), 3500);
+  }
+
+  function renderBadgeGrid(stats) {
+    const grid = document.getElementById("stats-badge-grid");
+    if (!grid) return;
+    const earned = new Set(stats.badges || []);
+    grid.innerHTML = allBadges.map(b => {
+      const has = earned.has(b.id);
+      return '<div class="badge-item ' + (has ? "earned" : "locked") + '" title="' + b.desc + '">' +
+        '<div class="badge-icon">' + b.icon + '</div>' +
+        '<div class="badge-name">' + b.name + '</div>' +
+        '</div>';
+    }).join("");
+  }
+
+  // ── CHAT ÉRTESÍTÉS ──
+  let lastChatTs = Date.now();
+  let notifTimer = null;
+
+  function showChatNotif(msg) {
+    // Ne mutasson értesítést ha a menüben van (ott látja a chatet)
+    if (document.getElementById("game-screen").style.display === "none") return;
+    const p = getActivePlayer();
+    // Saját üzenetre ne mutasson
+    if (p && msg.playerId === p.id) return;
+    const el = document.getElementById("chat-notif");
+    document.getElementById("notif-body").textContent =
+      (msg.avatar || "🧑") + " " + msg.name + ": " + msg.text;
+    el.style.display = "flex";
+    if (notifTimer) clearTimeout(notifTimer);
+    notifTimer = setTimeout(closeChatNotif, 5000);
+  }
+
+  function closeChatNotif() {
+    document.getElementById("chat-notif").style.display = "none";
+  }
   const MAX_CHAT_MSGS = 50;
+
+  const chatEmojis = [
+    "😀","😂","🤣","😍","🥰","😎","🤔","😅","😭","😱",
+    "🤩","😏","🙄","😤","🥳","🤯","😴","🤗","😇","🥺",
+    "👍","👎","👏","🙌","🤝","💪","🫶","❤️","🔥","⭐",
+    "🎉","🎊","🏆","🥇","💯","✅","❌","💀","👻","🤖",
+    "🐱","🐶","🦊","🐼","🦁","🐸","🦋","🌈","⚡","💥",
+    "🍕","🍔","🍪","🎂","🍦","☕","🎮","⚽","🎯","🎲"
+  ];
+
+  function initEmojiPanel() {
+    const panel = document.getElementById("emoji-panel");
+    if (!panel) return;
+    panel.innerHTML = chatEmojis.map(e =>
+      '<span class="emoji-pick" onclick="insertEmoji(\'' + e + '\')">' + e + '</span>'
+    ).join("");
+  }
+
+  function toggleEmojiPanel() {
+    const panel = document.getElementById("emoji-panel");
+    if (!panel) return;
+    panel.style.display = panel.style.display === "flex" ? "none" : "flex";
+  }
+
+  function insertEmoji(emoji) {
+    const input = document.getElementById("chat-input");
+    const pos = input.selectionStart || input.value.length;
+    input.value = input.value.slice(0, pos) + emoji + input.value.slice(pos);
+    input.focus();
+    input.selectionStart = input.selectionEnd = pos + emoji.length;
+  }
 
   function initChat() {
     if (!firebaseOk) return;
+    let firstLoad = true;
     db.ref("chat").limitToLast(30).on("child_added", snapshot => {
       const msg = snapshot.val();
-      if (msg) appendChatMessage(msg);
+      if (msg) {
+        appendChatMessage(msg);
+        // Értesítés csak új üzenetekre (nem a betöltéskori régiekre)
+        if (!firstLoad) showChatNotif(msg);
+      }
     });
+    // Rövid késleltetés után jelöljük hogy a kezdeti betöltés kész
+    setTimeout(() => { firstLoad = false; }, 2000);
   }
 
   function appendChatMessage(msg) {
