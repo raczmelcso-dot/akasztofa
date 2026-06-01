@@ -358,6 +358,73 @@
       margin-left: auto;
     }
     .stats-btn:hover { background: var(--hint-bg); }
+
+    /* ── AVATÁR VÁLASZTÓ ── */
+    .avatar-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      gap: 8px; margin: 4px 0;
+    }
+    .avatar-btn {
+      font-size: 1.6rem; padding: 6px; border-radius: 10px;
+      border: 2px solid transparent; background: var(--hint-bg);
+      cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+      text-align: center; line-height: 1;
+    }
+    .avatar-btn:hover { transform: scale(1.15); border-color: var(--btn-border); }
+    .avatar-btn.selected { border-color: #27ae60; background: rgba(39,174,96,0.1); }
+
+    /* ── GLOBAL CHAT ── */
+    #chat-section {
+      width: 100%; background: var(--card-bg);
+      border: 1.5px solid var(--card-border); border-radius: 16px;
+      padding: 16px 18px; box-shadow: 0 3px 12px rgba(100,130,160,0.1);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    #chat-section h3 {
+      font-size: 1rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px; margin: 0;
+    }
+    #chat-messages {
+      height: 180px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 4px 0;
+    }
+    .chat-msg {
+      display: flex; gap: 8px; align-items: flex-start;
+      animation: msgIn 0.2s ease;
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .chat-avatar { font-size: 1.2rem; line-height: 1; flex-shrink: 0; }
+    .chat-bubble {
+      background: var(--hint-bg); border: 1px solid var(--hint-border);
+      border-radius: 10px; padding: 6px 10px; font-size: 0.88rem;
+      color: var(--text); max-width: 100%;
+    }
+    .chat-bubble .chat-name {
+      font-weight: bold; font-size: 0.78rem; color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .chat-bubble.own { background: rgba(39,174,96,0.1); border-color: #27ae60; }
+    .chat-input-row { display: flex; gap: 8px; }
+    #chat-input {
+      flex: 1; padding: 8px 12px; border: 1.5px solid var(--btn-border);
+      border-radius: 10px; background: var(--btn-bg); color: var(--text);
+      font-size: 0.9rem; outline: none;
+    }
+    #chat-input:focus { border-color: #27ae60; }
+    #chat-send-btn {
+      padding: 8px 16px; background: #27ae60; color: #fff;
+      border: none; border-radius: 10px; font-size: 0.9rem;
+      font-weight: bold; cursor: pointer; transition: background 0.15s;
+    }
+    #chat-send-btn:hover { background: #1e8449; }
+    #chat-no-player {
+      font-size: 0.85rem; color: var(--muted); text-align: center;
+      font-style: italic;
+    }
     /* New player form */
     #new-player-form {
       display: none; flex-direction: column; gap: 10px; margin-top: 4px;
@@ -523,14 +590,8 @@
     <div id="new-player-form">
       <input type="text" id="new-player-name" placeholder="Neved..." maxlength="20" />
       <input type="password" id="new-player-pin" placeholder="4 jegyű PIN kód..." maxlength="4" pattern="[0-9]*" inputmode="numeric" />
-      <div class="gender-row">
-        <button class="gender-btn" id="gender-male" onclick="selectGender('male')">
-          👨 <span>Férfi</span>
-        </button>
-        <button class="gender-btn" id="gender-female" onclick="selectGender('female')">
-          👩 <span>Nő</span>
-        </button>
-      </div>
+      <p style="font-size:0.85rem;color:var(--muted);margin:0;">Válassz avatárt:</p>
+      <div class="avatar-grid" id="avatar-grid"></div>
       <div class="form-btns">
         <button class="form-btn save"   onclick="saveNewPlayer()">Mentés</button>
         <button class="form-btn cancel" onclick="cancelNewPlayer()">Mégse</button>
@@ -543,6 +604,19 @@
   <div id="leaderboard-section" style="width:100%;background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:16px;padding:18px 20px;box-shadow:0 3px 12px rgba(100,130,160,0.1);">
     <h3 style="font-size:1rem;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">🏆 Ranglista</h3>
     <div id="leaderboard-list"></div>
+  </div>
+
+  <!-- Global Chat -->
+  <div id="chat-section">
+    <h3>💬 Global Chat</h3>
+    <div id="chat-messages">
+      <p id="chat-no-player">Jelentkezz be egy profillal a chathez!</p>
+    </div>
+    <div class="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Írj valamit..." maxlength="120"
+        onkeydown="if(event.key==='Enter') sendChat()" />
+      <button id="chat-send-btn" onclick="sendChat()">Küld</button>
+    </div>
   </div>
 
   <!-- Difficulty — csak ha van aktív játékos -->
@@ -773,6 +847,10 @@
     return gender === "female" ? "👩" : "👨";
   }
 
+  function playerAvatar(p) {
+    return p.avatar || genderEmoji(p.gender) || "🧑";
+  }
+
   function renderPlayerList() {
     const list = document.getElementById("player-list");
     if (!list) return;
@@ -789,7 +867,7 @@
         ? '<span style="display:inline-block;width:8px;height:8px;background:#27ae60;border-radius:50%;margin-right:4px;vertical-align:middle;" title="Online"></span>'
         : '';
       row.innerHTML =
-        '<span class="player-emoji">' + genderEmoji(p.gender) + '</span>' +
+        '<span class="player-emoji">' + playerAvatar(p) + '</span>' +
         '<span class="player-name">' + onlineDot + p.name + '<span class="player-title ' + title.cls + '">' + title.label + '</span></span>' +
         '<span class="player-coins">🍪 ' + p.coins + '</span>' +
         '<button class="stats-btn" onclick="openStats(\'' + p.id + '\', event)" title="Statisztikák">📊</button>' +
@@ -818,7 +896,7 @@
         : '';
       row.innerHTML =
         '<span class="player-emoji">' + (medals[i] || "🏅") + '</span>' +
-        '<span class="player-emoji">' + genderEmoji(p.gender) + '</span>' +
+        '<span class="player-emoji">' + playerAvatar(p) + '</span>' +
         '<span class="player-name">' + onlineDot + p.name + '</span>' +
         '<span class="player-coins">🍪 ' + p.coins + '</span>';
       lb.appendChild(row);
@@ -876,26 +954,40 @@
     });
   }
 
+  // ── AVATÁROK ──
+  const avatars = [
+    "🧑","👦","👧","👨","👩","🧔","👴","👵","🧒",
+    "🧑‍🚀","🧙","🦸","🧛","🤠","👩‍💻","🧑‍🍳","🧑‍🎨",
+    "🧑‍🎤","🧑‍🏫","🧑‍⚕️","🧑‍🔬","🧑‍🚒","🥷","🤖","👻","🐱","🐶","🦊","🐼","🦁"
+  ];
+  let selectedAvatar = "🧑";
+
+  function renderAvatarGrid() {
+    const grid = document.getElementById("avatar-grid");
+    if (!grid) return;
+    grid.innerHTML = avatars.map(a =>
+      '<button class="avatar-btn' + (a === selectedAvatar ? " selected" : "") + '" onclick="selectAvatar(\'' + a + '\')">' + a + '</button>'
+    ).join("");
+  }
+
+  function selectAvatar(a) {
+    selectedAvatar = a;
+    renderAvatarGrid();
+  }
+
   function showNewPlayerForm() {
     document.getElementById("new-player-form").style.display = "flex";
     document.getElementById("add-player-btn").style.display  = "none";
     document.getElementById("new-player-name").value = "";
     document.getElementById("new-player-pin").value  = "";
-    newPlayerGender = null;
-    document.getElementById("gender-male").classList.remove("selected");
-    document.getElementById("gender-female").classList.remove("selected");
+    selectedAvatar = "🧑";
+    renderAvatarGrid();
     document.getElementById("new-player-name").focus();
   }
 
   function cancelNewPlayer() {
     document.getElementById("new-player-form").style.display = "none";
     document.getElementById("add-player-btn").style.display  = "block";
-  }
-
-  function selectGender(g) {
-    newPlayerGender = g;
-    document.getElementById("gender-male").classList.toggle("selected",   g === "male");
-    document.getElementById("gender-female").classList.toggle("selected", g === "female");
   }
 
   function saveNewPlayer() {
@@ -905,8 +997,7 @@
     if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
       alert("Kérlek adj meg egy 4 jegyű PIN kódot (csak számok)!"); return;
     }
-    if (!newPlayerGender) { alert("Kérlek válassz nemet!"); return; }
-    const newP = { id: Date.now().toString(), name, gender: newPlayerGender, coins: 0, pin };
+    const newP = { id: Date.now().toString(), name, avatar: selectedAvatar, coins: 0, pin };
     activePlayerId = newP.id;
     savePlayer(newP);
     cancelNewPlayer();
@@ -949,7 +1040,7 @@
     const bar = document.getElementById("active-player-bar");
     const p   = getActivePlayer();
     if (p) {
-      bar.textContent = genderEmoji(p.gender) + " " + p.name;
+      bar.textContent = playerAvatar(p) + " " + p.name;
       bar.style.display = "inline-flex";
     } else {
       bar.style.display = "none";
@@ -2015,7 +2106,7 @@
     if (label) {
       if (hasPlayer) {
         const p = getActivePlayer();
-        label.textContent = genderEmoji(p.gender) + " " + p.name + ", válassz nehézségi szintet!";
+        label.textContent = playerAvatar(p) + " " + p.name + ", válassz nehézségi szintet!";
       } else {
         label.textContent = "Válassz nehézségi szintet!";
       }
@@ -2357,6 +2448,7 @@
   }
 
   goToMenu();
+  initChat();
 
   // ── SZERENCSEKERÉK ──
   const wheelSegments = [
@@ -2547,7 +2639,7 @@
 
   function renderStatsData(p, s) {
     document.getElementById("stats-player-name").textContent =
-      genderEmoji(p.gender) + " " + p.name + " · " + getPlayerTitle(p.coins).label;
+      playerAvatar(p) + " " + p.name + " · " + getPlayerTitle(p.coins).label;
     const grid = document.getElementById("stats-grid");
     const winRate = s.totalPlayed > 0
       ? Math.round((s.totalWon / s.totalPlayed) * 100) : 0;
@@ -2640,6 +2732,71 @@
 
   function closeStats() {
     document.getElementById("stats-modal").style.display = "none";
+  }
+
+  // ── GLOBAL CHAT ──
+  const MAX_CHAT_MSGS = 50;
+
+  function initChat() {
+    if (!firebaseOk) return;
+    db.ref("chat").limitToLast(30).on("child_added", snapshot => {
+      const msg = snapshot.val();
+      if (msg) appendChatMessage(msg);
+    });
+  }
+
+  function appendChatMessage(msg) {
+    const box = document.getElementById("chat-messages");
+    if (!box) return;
+    const noPlayer = document.getElementById("chat-no-player");
+    if (noPlayer) noPlayer.style.display = "none";
+    const p = getActivePlayer();
+    const isOwn = p && msg.playerId === p.id;
+    const div = document.createElement("div");
+    div.className = "chat-msg";
+    div.innerHTML =
+      '<span class="chat-avatar">' + (msg.avatar || "🧑") + '</span>' +
+      '<div class="chat-bubble' + (isOwn ? " own" : "") + '">' +
+        '<div class="chat-name">' + msg.name + ' <span style="font-weight:normal;font-size:0.72rem;color:var(--muted2)">' + formatChatTime(msg.ts) + '</span></div>' +
+        '<div>' + escapeHtml(msg.text) + '</div>' +
+      '</div>';
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function formatChatTime(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    return d.getHours().toString().padStart(2,"0") + ":" + d.getMinutes().toString().padStart(2,"0");
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function sendChat() {
+    const p = getActivePlayer();
+    if (!p) { alert("Válassz játékost a chathez!"); return; }
+    const input = document.getElementById("chat-input");
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    if (!firebaseOk) return;
+    const msg = {
+      playerId: p.id,
+      name:     p.name,
+      avatar:   playerAvatar(p),
+      text:     text,
+      ts:       Date.now()
+    };
+    db.ref("chat").push(msg);
+    // Max 50 üzenet — régieket töröljük
+    db.ref("chat").once("value").then(snap => {
+      const keys = Object.keys(snap.val() || {});
+      if (keys.length > MAX_CHAT_MSGS) {
+        keys.slice(0, keys.length - MAX_CHAT_MSGS).forEach(k => db.ref("chat/" + k).remove());
+      }
+    });
   }
 
   // ── Theme toggle ──
