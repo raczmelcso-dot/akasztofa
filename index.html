@@ -623,10 +623,10 @@
 <button id="theme-toggle" onclick="toggleTheme()" title="Téma váltás">🌙</button>
 <canvas id="confetti-canvas"></canvas>
 <div id="badge-toast"></div>
-<div id="chat-notif" style="display:none; position:fixed; bottom:20px; right:16px;">
-  <button class="notif-close" onclick="closeChatNotif()">✕</button>
-  <div class="notif-header">💬 Új üzenet</div>
-  <div class="notif-body" id="notif-body"></div>
+<div id="chat-notif" style="display:none; position:fixed; bottom:20px; right:16px; background:var(--card-bg); border:1.5px solid #27ae60; border-radius:14px; padding:10px 36px 10px 16px; box-shadow:0 4px 20px rgba(0,0,0,0.2); z-index:1000; max-width:280px; flex-direction:column; gap:4px;">
+  <button class="notif-close" onclick="closeChatNotif()" style="position:absolute;top:6px;right:10px;background:none;border:none;cursor:pointer;font-size:0.9rem;color:#888;">✕</button>
+  <div class="notif-header" style="font-size:0.75rem;font-weight:bold;color:#27ae60;">💬 Új üzenet a chatben</div>
+  <div id="notif-body" style="font-size:0.9rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;"></div>
 </div>
 
 <!-- PIN modal -->
@@ -2541,6 +2541,7 @@
   goToMenu();
   initChat();
   initEmojiPanel();
+  renderAvatarGrid();
 
   // ── SZERENCSEKERÉK ──
   const wheelSegments = [
@@ -2896,14 +2897,16 @@
   let notifTimer = null;
 
   function showChatNotif(msg) {
-    // Ne mutasson értesítést ha a menüben van (ott látja a chatet)
-    if (document.getElementById("game-screen").style.display === "none") return;
+    // Csak játék közben mutasson értesítést (ne a menüben ahol látja a chatet)
+    const gameScreen = document.getElementById("game-screen");
+    if (!gameScreen || gameScreen.style.display === "none" || gameScreen.style.display === "") return;
     const p = getActivePlayer();
     // Saját üzenetre ne mutasson
     if (p && msg.playerId === p.id) return;
     const el = document.getElementById("chat-notif");
-    document.getElementById("notif-body").textContent =
-      (msg.avatar || "🧑") + " " + msg.name + ": " + msg.text;
+    const bodyEl = document.getElementById("notif-body");
+    if (!el || !bodyEl) return;
+    bodyEl.textContent = (msg.avatar || "🧑") + " " + msg.name + ": " + msg.text;
     el.style.display = "flex";
     if (notifTimer) clearTimeout(notifTimer);
     notifTimer = setTimeout(closeChatNotif, 5000);
@@ -2926,9 +2929,14 @@
   function initEmojiPanel() {
     const panel = document.getElementById("emoji-panel");
     if (!panel) return;
-    panel.innerHTML = chatEmojis.map(e =>
-      '<span class="emoji-pick" onclick="insertEmoji(\'' + e + '\')">' + e + '</span>'
-    ).join("");
+    panel.innerHTML = "";
+    chatEmojis.forEach(e => {
+      const span = document.createElement("span");
+      span.className = "emoji-pick";
+      span.textContent = e;
+      span.addEventListener("click", () => insertEmoji(e));
+      panel.appendChild(span);
+    });
   }
 
   function toggleEmojiPanel() {
