@@ -2542,12 +2542,13 @@
   initChat();
 
   const chatEmojis = [
-    "😀","😂","🤣","😍","🥰","😎","🤔","😅","😭","😱",
-    "🤩","😏","🙄","😤","🥳","🤯","😴","🤗","😇","🥺",
-    "👍","👎","👏","🙌","🤝","💪","🫶","❤️","🔥","⭐",
-    "🎉","🎊","🏆","🥇","💯","✅","❌","💀","👻","🤖",
+    "😀","😂","😍","😎","🤔","😅","😭","😱","😏","😴",
+    "😇","😤","😊","🙂","😋","😜","🤗","😬","😢","😡",
+    "👍","👎","👏","🙌","🤝","💪","❤️","💔","💯","✅",
+    "🔥","⭐","🎉","🎊","🏆","🥇","🥈","🥉","❌","💀",
     "🐱","🐶","🦊","🐼","🦁","🐸","🦋","🌈","⚡","💥",
-    "🍕","🍔","🍪","🎂","🍦","☕","🎮","⚽","🎯","🎲"
+    "🍕","🍔","🍪","🎂","🍦","☕","🎮","⚽","🎯","🎲",
+    "👻","🤖","🌟","💫","🎵","🎶","🌙","☀️","🌊","🍀"
   ];
 
   initEmojiPanel();
@@ -2845,21 +2846,33 @@
 
   // ── JELVÉNYEK ──
   const allBadges = [
-    { id: "first_win",     icon: "🌟", name: "Első lépés",    desc: "Első megoldott szó",              check: s => s.totalWon >= 1 },
-    { id: "win10",         icon: "🎯", name: "Tízes",         desc: "10 szó megoldva",                 check: s => s.totalWon >= 10 },
-    { id: "win50",         icon: "🏆", name: "Bajnok",        desc: "50 szó megoldva",                 check: s => s.totalWon >= 50 },
-    { id: "win100",        icon: "👑", name: "Legenda",       desc: "100 szó megoldva",                check: s => s.totalWon >= 100 },
-    { id: "perfect1",      icon: "✨", name: "Hibátlan",      desc: "1 hibátlan szint",                check: s => s.perfectWins >= 1 },
-    { id: "perfect10",     icon: "💎", name: "Tökéletes",     desc: "10 hibátlan szint",               check: s => s.perfectWins >= 10 },
-    { id: "streak5",       icon: "🔥", name: "Sorozat",       desc: "5 szint egyhuzamban",             check: s => s.bestStreak >= 5 },
-    { id: "streak10",      icon: "⚡", name: "Villám",        desc: "10 szint egyhuzamban",            check: s => s.bestStreak >= 10 },
-    { id: "streak20",      icon: "🌪️", name: "Tornádó",       desc: "20 szint egyhuzamban",            check: s => s.bestStreak >= 20 },
-    { id: "timer5",        icon: "⏱️", name: "Gyors ujjak",   desc: "5 időre teljesített szint",       check: s => s.timerWins >= 5 },
-    { id: "coins50",       icon: "🍪", name: "Kekszgyűjtő",   desc: "50 keksz összegyűjtve",           check: (s,p) => (p.coins||0) >= 50 },
-    { id: "coins200",      icon: "🎂", name: "Kekszkirály",   desc: "200 keksz összegyűjtve",          check: (s,p) => (p.coins||0) >= 200 },
-    { id: "allcats",       icon: "🌈", name: "Felfedező",     desc: "Minden kategóriában nyertél",     check: s => Object.keys(s.categories||{}).length >= 7 },
-    { id: "playtime1h",    icon: "🕐", name: "Elkötelezett",  desc: "1 óra játékidő",                  check: s => (s.totalPlayTime||0) >= 3600 },
-    { id: "noerror3",      icon: "🎖️", name: "Mesterlövész",  desc: "3 egymás utáni hibátlan szint",   check: s => s.perfectWins >= 3 },
+    // KEZDŐ
+    { id: "first_win",   icon: "🌟", name: "Első lépés",    desc: "Első megoldott szó",                    check: (s,p) => s.totalWon >= 1 },
+    { id: "win10",       icon: "🎯", name: "Tízes",         desc: "10 szó megoldva",                       check: (s,p) => s.totalWon >= 10 },
+    { id: "win50",       icon: "🏆", name: "Bajnok",        desc: "50 szó megoldva",                       check: (s,p) => s.totalWon >= 50 },
+    { id: "win100",      icon: "👑", name: "Legenda",       desc: "100 szó megoldva",                      check: (s,p) => s.totalWon >= 100 },
+    { id: "win250",      icon: "💎", name: "Mester",        desc: "250 szó megoldva",                      check: (s,p) => s.totalWon >= 250 },
+    // HIBÁTLAN
+    { id: "perfect1",    icon: "✨", name: "Hibátlan",      desc: "5 hibátlan szint",                      check: (s,p) => s.perfectWins >= 5 },
+    { id: "perfect10",   icon: "🎖️", name: "Mesterlövész",  desc: "20 hibátlan szint",                     check: (s,p) => s.perfectWins >= 20 },
+    { id: "perfect50",   icon: "🔮", name: "Tökéletes",     desc: "50 hibátlan szint",                     check: (s,p) => s.perfectWins >= 50 },
+    // SOROZAT
+    { id: "streak5",     icon: "🔥", name: "Sorozat",       desc: "5 szint egyhuzamban",                   check: (s,p) => s.bestStreak >= 5 },
+    { id: "streak10",    icon: "⚡", name: "Villám",        desc: "10 szint egyhuzamban",                  check: (s,p) => s.bestStreak >= 10 },
+    { id: "streak25",    icon: "🌪️", name: "Tornádó",       desc: "25 szint egyhuzamban",                  check: (s,p) => s.bestStreak >= 25 },
+    // IDŐRE
+    { id: "timer5",      icon: "⏱️", name: "Gyors ujjak",   desc: "20 időre teljesített szint",            check: (s,p) => s.timerWins >= 20 },
+    { id: "timer20",     icon: "🚀", name: "Rakéta",        desc: "50 időre teljesített szint",            check: (s,p) => s.timerWins >= 50 },
+    // KEKSZ
+    { id: "coins50",     icon: "🍪", name: "Kekszgyűjtő",   desc: "50 keksz összegyűjtve",                 check: (s,p) => (p.coins||0) >= 50 },
+    { id: "coins200",    icon: "🎂", name: "Kekszkirály",   desc: "200 keksz összegyűjtve",                check: (s,p) => (p.coins||0) >= 200 },
+    { id: "coins500",    icon: "🏅", name: "Kekszbáró",     desc: "500 keksz összegyűjtve",                check: (s,p) => (p.coins||0) >= 500 },
+    // KATEGÓRIA
+    { id: "allcats",     icon: "🌈", name: "Felfedező",     desc: "Minden kategóriában legalább 5 győzelem",check: (s,p) => Object.values(s.categories||{}).filter(v=>v>=5).length >= 7 },
+    { id: "catmaster",   icon: "🗺️", name: "Kategóriamester",desc: "Minden kategóriában legalább 20 győzelem",check: (s,p) => Object.values(s.categories||{}).filter(v=>v>=20).length >= 7 },
+    // JÁTÉKIDŐ
+    { id: "playtime1h",  icon: "🕐", name: "Elkötelezett",  desc: "1 óra játékidő",                        check: (s,p) => (s.totalPlayTime||0) >= 3600 },
+    { id: "playtime5h",  icon: "🕰️", name: "Megszállott",   desc: "5 óra játékidő",                        check: (s,p) => (s.totalPlayTime||0) >= 18000 },
   ];
 
   function checkBadges(stats, player) {
