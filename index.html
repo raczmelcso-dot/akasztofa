@@ -1664,7 +1664,7 @@
 
     // Online státusz beállítása
     const p = getActivePlayer();
-    if (p) setOnline(p.id, true);
+    if (p) startOnlinePing(p.id);
 
     startLevel();
   }
@@ -1951,15 +1951,33 @@
   function setOnline(playerId, isOnline) {
     if (!firebaseOk || !playerId) return;
     if (isOnline) {
-      db.ref("online/" + playerId).set({
-        since: Date.now()
-      });
-      // Automatikus törlés ha bezárja az oldalt
+      db.ref("online/" + playerId).set({ since: Date.now() });
       db.ref("online/" + playerId).onDisconnect().remove();
     } else {
       db.ref("online/" + playerId).remove();
     }
   }
+
+  // Ping: 30 másodpercenként frissíti az online státuszt
+  // hogy ne tűnjön el ha a kapcsolat rövid időre megszakad
+  function startOnlinePing(playerId) {
+    stopOnlinePing();
+    setOnline(playerId, true);
+    onlinePingInterval = setInterval(() => {
+      if (document.getElementById("game-screen").style.display !== "none") {
+        setOnline(playerId, true);
+      }
+    }, 30000);
+  }
+
+  function stopOnlinePing() {
+    if (onlinePingInterval) {
+      clearInterval(onlinePingInterval);
+      onlinePingInterval = null;
+    }
+  }
+
+  let onlinePingInterval = null;
 
   // Online státusz figyelése — valós idejű frissítés
   let onlineUsers = new Set();
@@ -1973,9 +1991,9 @@
   }
 
   function goToMenu() {
-    // Offline státusz beállítása
+    // Offline státusz + ping leállítása
     const p = getActivePlayer();
-    if (p) setOnline(p.id, false);
+    if (p) { setOnline(p.id, false); stopOnlinePing(); }
     document.getElementById("menu-screen").style.display = "flex";
     document.getElementById("game-screen").style.display = "none";
     renderPlayerList();
