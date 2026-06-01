@@ -705,7 +705,28 @@
   </div>
 </div>
 
-<h1>Akasztófa</h1>
+<h1 id="main-title" onclick="adminTitleClick()" style="cursor:default; user-select:none;">Akasztófa</h1>
+
+<!-- ADMIN PANEL -->
+<div id="admin-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1002; align-items:center; justify-content:center;">
+  <div style="background:var(--card-bg); border-radius:20px; padding:28px 24px; width:90%; max-width:360px; display:flex; flex-direction:column; gap:14px; box-shadow:0 8px 40px rgba(0,0,0,0.4); border:2px solid #c0392b;">
+    <h3 style="text-align:center; color:#c0392b; font-size:1.2rem;">🔐 Admin panel</h3>
+    <input type="password" id="admin-pw-input" placeholder="Admin jelszó..." maxlength="30"
+      style="padding:10px 14px; border:1.5px solid var(--btn-border); border-radius:10px; background:var(--btn-bg); color:var(--text); font-size:1rem; outline:none;"
+      onkeydown="if(event.key==='Enter') adminLogin()" />
+    <p id="admin-pw-error" style="color:#c0392b; font-size:0.85rem; text-align:center; display:none;">❌ Hibás jelszó!</p>
+    <div id="admin-actions" style="display:none; flex-direction:column; gap:10px;">
+      <p style="font-size:0.85rem; color:var(--muted); text-align:center;">Mit szeretnél csinálni?</p>
+      <button onclick="adminResetBadges()" style="padding:10px; background:#e74c3c; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.95rem;">🏅 Mindenki jelvényeinek törlése</button>
+      <button onclick="adminResetStats()" style="padding:10px; background:#e67e22; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.95rem;">📊 Mindenki statisztikájának törlése</button>
+      <button onclick="adminResetCoins()" style="padding:10px; background:#8e44ad; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.95rem;">🍪 Mindenki kekszének nullázása</button>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button id="admin-login-btn" onclick="adminLogin()" style="flex:1; padding:10px; background:#27ae60; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Belépés</button>
+      <button onclick="closeAdmin()" style="flex:1; padding:10px; background:var(--hint-bg); color:var(--muted); border:1.5px solid var(--btn-border); border-radius:10px; font-weight:bold; cursor:pointer;">Mégse</button>
+    </div>
+  </div>
+</div>
 
 <!-- MENU -->
 <div id="menu-screen">
@@ -3116,6 +3137,91 @@
       if (keys.length > MAX_CHAT_MSGS) {
         keys.slice(0, keys.length - MAX_CHAT_MSGS).forEach(k => db.ref("chat/" + k).remove());
       }
+    });
+  }
+
+  // ── ADMIN PANEL ──
+  const ADMIN_PASSWORD = "melcsi2024admin"; // ← ezt változtasd meg!
+  let adminClickCount = 0;
+  let adminClickTimer = null;
+
+  function adminTitleClick() {
+    adminClickCount++;
+    if (adminClickTimer) clearTimeout(adminClickTimer);
+    adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
+    if (adminClickCount >= 5) {
+      adminClickCount = 0;
+      openAdmin();
+    }
+  }
+
+  function openAdmin() {
+    document.getElementById("admin-modal").style.display = "flex";
+    document.getElementById("admin-pw-input").value = "";
+    document.getElementById("admin-pw-error").style.display = "none";
+    document.getElementById("admin-actions").style.display = "none";
+    document.getElementById("admin-login-btn").style.display = "inline-block";
+    setTimeout(() => document.getElementById("admin-pw-input").focus(), 100);
+  }
+
+  function closeAdmin() {
+    document.getElementById("admin-modal").style.display = "none";
+  }
+
+  function adminLogin() {
+    const pw = document.getElementById("admin-pw-input").value;
+    if (pw === ADMIN_PASSWORD) {
+      document.getElementById("admin-pw-error").style.display = "none";
+      document.getElementById("admin-actions").style.display = "flex";
+      document.getElementById("admin-login-btn").style.display = "none";
+      document.getElementById("admin-pw-input").style.display = "none";
+    } else {
+      document.getElementById("admin-pw-error").style.display = "block";
+      document.getElementById("admin-pw-input").value = "";
+    }
+  }
+
+  function adminResetBadges() {
+    if (!confirm("Biztosan törlöd MINDENKI jelvényeit?")) return;
+    if (!firebaseOk) { alert("Firebase nem elérhető!"); return; }
+    db.ref("stats").once("value").then(snap => {
+      const data = snap.val() || {};
+      const updates = {};
+      Object.keys(data).forEach(id => { updates[id + "/badges"] = null; });
+      db.ref("stats").update(updates).then(() => {
+        // Lokális törlés is
+        Object.keys(localStorage).filter(k => k.startsWith("stats_")).forEach(k => {
+          const s = JSON.parse(localStorage.getItem(k) || "{}");
+          delete s.badges;
+          localStorage.setItem(k, JSON.stringify(s));
+        });
+        alert("✅ Mindenki jelvényei törölve!");
+        closeAdmin();
+      });
+    });
+  }
+
+  function adminResetStats() {
+    if (!confirm("Biztosan törlöd MINDENKI statisztikáját? (kekszek megmaradnak)")) return;
+    if (!firebaseOk) { alert("Firebase nem elérhető!"); return; }
+    db.ref("stats").remove().then(() => {
+      Object.keys(localStorage).filter(k => k.startsWith("stats_")).forEach(k => localStorage.removeItem(k));
+      alert("✅ Mindenki statisztikája törölve!");
+      closeAdmin();
+    });
+  }
+
+  function adminResetCoins() {
+    if (!confirm("Biztosan nullázod MINDENKI kekszét?")) return;
+    if (!firebaseOk) { alert("Firebase nem elérhető!"); return; }
+    db.ref("players").once("value").then(snap => {
+      const data = snap.val() || {};
+      const updates = {};
+      Object.keys(data).forEach(id => { updates[id + "/coins"] = 0; });
+      db.ref("players").update(updates).then(() => {
+        alert("✅ Mindenki keksze nullázva!");
+        closeAdmin();
+      });
     });
   }
 
