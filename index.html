@@ -2788,6 +2788,8 @@
     document.getElementById("stats-modal").style.display = "flex";
     renderBadgeGrid(s);
   }
+
+  function openStats(playerId, e) {
     if (e) e.stopPropagation();
     const p = players.find(x => x.id === playerId);
     if (!p) return;
