@@ -300,6 +300,64 @@
       transition: background 0.15s;
     }
     .player-delete:hover { background: rgba(192,57,43,0.1); color: #c0392b; }
+
+    /* ── STATISZTIKA MODAL ── */
+    #stats-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55); z-index: 997;
+      align-items: center; justify-content: center;
+    }
+    #stats-box {
+      background: var(--card-bg); border-radius: 22px;
+      padding: 28px 24px; width: 92%; max-width: 420px;
+      max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    #stats-box h2 { font-size: 1.4rem; color: var(--text); text-align: center; }
+    #stats-box .stats-player-name {
+      text-align: center; font-size: 1rem; color: var(--muted);
+      margin-top: -10px;
+    }
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-card {
+      background: var(--hint-bg); border: 1.5px solid var(--hint-border);
+      border-radius: 12px; padding: 12px 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      text-align: center;
+    }
+    .stat-icon  { font-size: 1.6rem; line-height: 1; }
+    .stat-value { font-size: 1.4rem; font-weight: bold; color: var(--text); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); }
+    .stat-card.highlight { border-color: #f39c12; background: #fff8e1; }
+    body.dark .stat-card.highlight { background: #2a1e08; }
+    .stats-cat-list { display: flex; flex-direction: column; gap: 6px; }
+    .stats-cat-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.9rem; color: var(--text);
+    }
+    .stats-cat-bar-bg {
+      flex: 1; height: 8px; background: var(--card-border);
+      border-radius: 4px; overflow: hidden;
+    }
+    .stats-cat-bar { height: 100%; background: #27ae60; border-radius: 4px; }
+    .stats-close-btn {
+      padding: 10px; background: var(--hint-bg);
+      border: 1.5px solid var(--btn-border); border-radius: 10px;
+      color: var(--muted); font-size: 0.95rem; font-weight: bold;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .stats-close-btn:hover { background: var(--back-hover); }
+    .stats-btn {
+      background: none; border: 1.5px solid var(--btn-border);
+      border-radius: 8px; padding: 3px 10px; font-size: 0.8rem;
+      color: var(--muted); cursor: pointer; transition: background 0.15s;
+      margin-left: auto;
+    }
+    .stats-btn:hover { background: var(--hint-bg); }
     /* New player form */
     #new-player-form {
       display: none; flex-direction: column; gap: 10px; margin-top: 4px;
@@ -431,6 +489,20 @@
       <button onclick="confirmPin()" style="flex:1; padding:10px; background:#27ae60; color:#fff; border:none; border-radius:10px; font-weight:bold; font-size:1rem; cursor:pointer;">OK</button>
       <button onclick="closePinModal()" style="flex:1; padding:10px; background:var(--hint-bg); color:var(--muted); border:1.5px solid var(--btn-border); border-radius:10px; font-weight:bold; font-size:1rem; cursor:pointer;">Mégse</button>
     </div>
+  </div>
+</div>
+
+<!-- STATS MODAL -->
+<div id="stats-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:997; align-items:center; justify-content:center;">
+  <div id="stats-box">
+    <h2>📊 Statisztikák</h2>
+    <p class="stats-player-name" id="stats-player-name"></p>
+    <div class="stats-grid" id="stats-grid"></div>
+    <div>
+      <p style="font-size:0.85rem; font-weight:bold; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">Kategóriánként</p>
+      <div class="stats-cat-list" id="stats-cat-list"></div>
+    </div>
+    <button class="stats-close-btn" onclick="closeStats()">Bezárás</button>
   </div>
 </div>
 
@@ -710,6 +782,7 @@
         '<span class="player-emoji">' + genderEmoji(p.gender) + '</span>' +
         '<span class="player-name">'  + p.name + '<span class="player-title ' + title.cls + '">' + title.label + '</span></span>' +
         '<span class="player-coins">🍪 ' + p.coins + '</span>' +
+        '<button class="stats-btn" onclick="openStats(\'' + p.id + '\', event)" title="Statisztikák">📊</button>' +
         '<button class="player-delete" onclick="deletePlayer(\'' + p.id + '\', event)" title="Törlés">✕</button>';
       row.addEventListener("click", () => selectPlayer(p.id));
       list.appendChild(row);
@@ -725,13 +798,13 @@
       lb.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);text-align:center">Még senki sem játszott.</p>';
       return;
     }
-    const medals = ["🥇","🥈","🥉"];
+    const medals = ["🥇","🥈","🥉","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟"];
     sorted.forEach((p, i) => {
       const row = document.createElement("div");
       row.className = "player-row" + (p.id === activePlayerId ? " active" : "");
       row.style.cursor = "default";
       row.innerHTML =
-        '<span class="player-emoji">' + (medals[i] || (i+1)+".") + '</span>' +
+        '<span class="player-emoji">' + (medals[i] || "🏅") + '</span>' +
         '<span class="player-emoji">' + genderEmoji(p.gender) + '</span>' +
         '<span class="player-name">'  + p.name + '</span>' +
         '<span class="player-coins">🍪 ' + p.coins + '</span>';
@@ -2143,6 +2216,9 @@
     lc.style.display = "flex";
     document.getElementById("mistakes-info").style.visibility = "";
 
+    // Statisztika frissítés
+    updateStats(true, mistakes === 0, bonusType === "timer", currentCategory);
+
     // Szerencsekerék minden 10. szintnél — kis késleltetéssel
     if (currentLevel % 10 === 0) {
       setTimeout(() => openWheel(), 1800);
@@ -2171,6 +2247,8 @@
     document.getElementById("buy-hint-btn").style.display = "none";
     document.getElementById("retry-btn").style.display = "inline-block";
     document.getElementById("menu-btn").style.display  = "inline-block";
+    // Statisztika frissítés (vesztés)
+    updateStats(false, false, false, currentCategory);
   }
 
   function disableKeyboard() {
@@ -2344,6 +2422,94 @@
     // Felfed 3 véletlenszerű betűt
     const toReveal = hidden.sort(() => Math.random() - 0.5).slice(0, 3);
     toReveal.forEach(ch => guess(ch));
+  }
+
+  // ── STATISZTIKÁK ──
+  function getStats(playerId) {
+    return JSON.parse(localStorage.getItem("stats_" + playerId) || "{}");
+  }
+
+  function saveStats(playerId, stats) {
+    localStorage.setItem("stats_" + playerId, JSON.stringify(stats));
+    // Firebase-be is mentjük
+    if (firebaseOk) db.ref("stats/" + playerId).set(stats);
+  }
+
+  function updateStats(won, perfect, timerWin, category) {
+    const p = getActivePlayer();
+    if (!p) return;
+    const s = getStats(p.id);
+    s.totalPlayed   = (s.totalPlayed   || 0) + 1;
+    s.totalWon      = (s.totalWon      || 0) + (won ? 1 : 0);
+    s.perfectWins   = (s.perfectWins   || 0) + (perfect ? 1 : 0);
+    s.timerWins     = (s.timerWins     || 0) + (timerWin ? 1 : 0);
+    s.totalMistakes = (s.totalMistakes || 0) + mistakes;
+    s.bestStreak    = Math.max(s.bestStreak || 0, streak);
+    // Kategória számláló
+    if (!s.categories) s.categories = {};
+    s.categories[category] = (s.categories[category] || 0) + (won ? 1 : 0);
+    saveStats(p.id, s);
+  }
+
+  function openStats(playerId, e) {
+    if (e) e.stopPropagation();
+    const p = players.find(x => x.id === playerId);
+    if (!p) return;
+    const s = getStats(playerId);
+    document.getElementById("stats-player-name").textContent =
+      genderEmoji(p.gender) + " " + p.name + " · " + getPlayerTitle(p.coins).label;
+
+    // Fő statisztikák
+    const grid = document.getElementById("stats-grid");
+    const winRate = s.totalPlayed > 0
+      ? Math.round((s.totalWon / s.totalPlayed) * 100) : 0;
+    const avgMistakes = s.totalWon > 0
+      ? (s.totalMistakes / s.totalPlayed).toFixed(1) : "–";
+
+    grid.innerHTML = [
+      { icon: "🎮", value: s.totalPlayed  || 0, label: "Összes szint",       cls: "" },
+      { icon: "✅", value: s.totalWon     || 0, label: "Megoldott szó",      cls: "" },
+      { icon: "🔥", value: s.bestStreak   || 0, label: "Legjobb sorozat",    cls: "highlight" },
+      { icon: "💎", value: winRate + "%",        label: "Sikerességi arány", cls: "" },
+      { icon: "✨", value: s.perfectWins  || 0, label: "Hibátlan szint",     cls: "" },
+      { icon: "⏱️", value: s.timerWins    || 0, label: "Időre teljesítve",   cls: "" },
+      { icon: "💀", value: s.totalMistakes|| 0, label: "Összes hiba",        cls: "" },
+      { icon: "📈", value: avgMistakes,          label: "Átlag hiba/szint",  cls: "" },
+    ].map(item =>
+      '<div class="stat-card ' + item.cls + '">' +
+        '<div class="stat-icon">'  + item.icon  + '</div>' +
+        '<div class="stat-value">' + item.value + '</div>' +
+        '<div class="stat-label">' + item.label + '</div>' +
+      '</div>'
+    ).join("");
+
+    // Kategória lista
+    const catList = document.getElementById("stats-cat-list");
+    const cats = s.categories || {};
+    const maxCat = Math.max(...Object.values(cats), 1);
+    const catEntries = Object.entries(categoryInfo).map(([key, info]) => ({
+      key, info, count: cats[key] || 0
+    })).sort((a, b) => b.count - a.count);
+
+    if (catEntries.every(c => c.count === 0)) {
+      catList.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);text-align:center">Még nincs adat.</p>';
+    } else {
+      catList.innerHTML = catEntries.map(({ info, count }) =>
+        '<div class="stats-cat-row">' +
+          '<span style="font-size:1.1rem">' + info.icon + '</span>' +
+          '<span style="min-width:80px;font-size:0.85rem">' + info.name + '</span>' +
+          '<div class="stats-cat-bar-bg"><div class="stats-cat-bar" style="width:' +
+            Math.round((count / maxCat) * 100) + '%"></div></div>' +
+          '<span style="font-size:0.85rem;color:var(--muted);min-width:24px;text-align:right">' + count + '</span>' +
+        '</div>'
+      ).join("");
+    }
+
+    document.getElementById("stats-modal").style.display = "flex";
+  }
+
+  function closeStats() {
+    document.getElementById("stats-modal").style.display = "none";
   }
 
   // ── Theme toggle ──
