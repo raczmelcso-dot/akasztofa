@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Akasztófa</title>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#c0392b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Akasztófa">
+  <link rel="apple-touch-icon" href="icon.svg">
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -753,6 +760,17 @@
     <button id="add-player-btn" onclick="showNewPlayerForm()">+ Új játékos</button>
   </div>
 
+  <!-- Napi jutalom -->
+  <div id="daily-reward-section" style="width:100%; background:var(--card-bg); border:2px solid #f39c12; border-radius:16px; padding:18px 20px; box-shadow:0 3px 12px rgba(243,156,18,0.15); text-align:center; display:flex; flex-direction:column; gap:12px; align-items:center;">
+    <h3 style="font-size:1rem; color:#f39c12; text-transform:uppercase; letter-spacing:1px; margin:0;">🎁 Napi jutalom</h3>
+    <p id="daily-reward-status" style="font-size:0.9rem; color:var(--muted); margin:0;"></p>
+    <button id="daily-reward-btn" onclick="claimDailyReward()" style="padding:12px 32px; background:linear-gradient(135deg,#f39c12,#e67e22); color:#fff; border:none; border-radius:12px; font-size:1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 15px rgba(243,156,18,0.3); transition:transform 0.1s; display:none;">
+      🎁 Jutalom átvétele!
+    </button>
+    <div id="daily-reward-result" style="display:none; font-size:1.1rem; font-weight:bold; color:#27ae60; background:rgba(39,174,96,0.1); border:1.5px solid #27ae60; border-radius:10px; padding:10px 20px;"></div>
+    <p id="daily-reward-timer" style="font-size:0.85rem; color:var(--muted); display:none;"></p>
+  </div>
+
   <!-- Leaderboard -->
   <div id="leaderboard-section" style="width:100%;background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:16px;padding:18px 20px;box-shadow:0 3px 12px rgba(100,130,160,0.1);">
     <h3 style="font-size:1rem;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">🏆 Ranglista</h3>
@@ -1073,6 +1091,7 @@
         updateMenuState();
         coins = p.coins;
         updateCoinDisplay();
+        updateDailyRewardUI();
       } else {
         document.getElementById("pin-error").style.display = "block";
         document.getElementById("pin-input").value = "";
@@ -2237,7 +2256,6 @@
   }
 
   function goToMenu() {
-    // Offline státusz + ping leállítása
     const p = getActivePlayer();
     if (p) { setOnline(p.id, false); stopOnlinePing(); }
     document.getElementById("menu-screen").style.display = "flex";
@@ -2246,6 +2264,7 @@
     renderLeaderboard();
     updateActivePlayerBar();
     updateMenuState();
+    updateDailyRewardUI();
   }
 
   function updateMenuState() {
@@ -3042,6 +3061,92 @@
     notifTimer = setTimeout(closeChatNotif, 5000);
   }
 
+  // ── NAPI JUTALOM ──
+  const dailyRewards = [
+    { icon: "🍪", text: "+3 keksz",                    action: () => { for(let i=0;i<3;i++) addCoin(); } },
+    { icon: "🍪", text: "+5 keksz",                    action: () => { for(let i=0;i<5;i++) addCoin(); } },
+    { icon: "🍪", text: "+8 keksz",                    action: () => { for(let i=0;i<8;i++) addCoin(); } },
+    { icon: "🍪", text: "+10 keksz",                   action: () => { for(let i=0;i<10;i++) addCoin(); } },
+    { icon: "🃏", text: "+2 Joker kártya",             action: () => { jokerCount += 2; updateJokerDisplay(); } },
+    { icon: "🔥", text: "Dupla keksz a következő szinten!", action: () => { nextLevelDouble = true; } },
+    { icon: "⭐", text: "+5 keksz + 1 Joker",         action: () => { for(let i=0;i<5;i++) addCoin(); jokerCount++; updateJokerDisplay(); } },
+    { icon: "🎰", text: "Azonnali szerencsekerék pörgetés!", action: () => { setTimeout(() => openWheel(), 500); } },
+  ];
+
+  function getDailyKey() {
+    const p = getActivePlayer();
+    if (!p) return null;
+    return "daily_" + p.id;
+  }
+
+  function getTodayStr() {
+    const d = new Date();
+    return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+  }
+
+  function updateDailyRewardUI() {
+    const p = getActivePlayer();
+    const statusEl = document.getElementById("daily-reward-status");
+    const btnEl    = document.getElementById("daily-reward-btn");
+    const timerEl  = document.getElementById("daily-reward-timer");
+    const resultEl = document.getElementById("daily-reward-result");
+    resultEl.style.display = "none";
+
+    if (!p) {
+      statusEl.textContent = "Jelentkezz be a napi jutalom átvételéhez!";
+      btnEl.style.display  = "none";
+      timerEl.style.display = "none";
+      return;
+    }
+
+    const key       = getDailyKey();
+    const lastClaim = localStorage.getItem(key);
+    const today     = getTodayStr();
+
+    if (lastClaim === today) {
+      // Ma már átvette
+      btnEl.style.display   = "none";
+      statusEl.textContent  = "✅ Ma már átvettél jutalmat!";
+      // Visszaszámláló a következő jutalomig
+      const now       = new Date();
+      const tomorrow  = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const diff      = tomorrow - now;
+      const hh        = Math.floor(diff / 3600000);
+      const mm        = Math.floor((diff % 3600000) / 60000);
+      timerEl.textContent  = "Következő jutalom: " + hh + " óra " + mm + " perc múlva";
+      timerEl.style.display = "block";
+    } else {
+      // Még nem vette át
+      statusEl.textContent  = "Napi jutalmad vár! 🎁";
+      btnEl.style.display   = "inline-block";
+      timerEl.style.display = "none";
+    }
+  }
+
+  function claimDailyReward() {
+    const p = getActivePlayer();
+    if (!p) return;
+    const key   = getDailyKey();
+    const today = getTodayStr();
+    if (localStorage.getItem(key) === today) return;
+
+    // Véletlenszerű jutalom
+    const reward = dailyRewards[Math.floor(Math.random() * dailyRewards.length)];
+    reward.action();
+    localStorage.setItem(key, today);
+
+    // UI frissítés
+    const resultEl = document.getElementById("daily-reward-result");
+    resultEl.textContent  = reward.icon + " " + reward.text;
+    resultEl.style.display = "block";
+    document.getElementById("daily-reward-btn").style.display = "none";
+    document.getElementById("daily-reward-status").textContent = "✅ Jutalom átvéve!";
+    document.getElementById("daily-reward-timer").style.display = "none";
+
+    playSound("win");
+    launchConfetti();
+  }
+
   // ── SZŰRŐ ──
   const badWords = [
     "szar","barom","idióta","idiot","hülye","hulye","büdös","budos",
@@ -3251,6 +3356,14 @@
     darkMode = !darkMode;
     document.body.classList.toggle("dark", darkMode);
     document.getElementById("theme-toggle").textContent = darkMode ? "☀️" : "🌙";
+  }
+
+  // ── PWA Service Worker ──
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js")
+        .catch(err => console.log("SW hiba:", err));
+    });
   }
 </script>
 </body>
