@@ -2933,7 +2933,9 @@
   ];
 
   function checkBadges(stats, player, fromGame) {
-    if (!fromGame) return stats; // csak játékból hívható
+    if (!fromGame) return stats;
+    // Ne adjon jelvényt ha még egyetlen szintet sem játszott
+    if ((stats.totalPlayed || 0) < 1) return stats;
     const earned = new Set(stats.badges || []);
     const newOnes = [];
     allBadges.forEach(b => {
@@ -3040,8 +3042,23 @@
     notifTimer = setTimeout(closeChatNotif, 5000);
   }
 
-  function closeChatNotif() {
-    document.getElementById("chat-notif").style.display = "none";
+  // ── SZŰRŐ ──
+  const badWords = [
+    "szar","barom","idióta","idiot","hülye","hulye","büdös","budos",
+    "kurva","fasz","pina","segg","geci","baszd","bassza","rohadék",
+    "rohadt","állat","allat","takony","köcsög","kocsog","picsa",
+    "baszom","kibaszott","anyád","anyad","apád","apad","ribanc",
+    "dögölj","dogolj","elhullasz","szajha","loser","retard"
+  ];
+
+  function filterBadWords(text) {
+    let result = text;
+    badWords.forEach(word => {
+      const stars = "*".repeat(word.length);
+      const regex = new RegExp(word, "gi");
+      result = result.replace(regex, stars);
+    });
+    return result;
   }
   const MAX_CHAT_MSGS = 50;
 
@@ -3128,7 +3145,7 @@
       playerId: p.id,
       name:     p.name,
       avatar:   playerAvatar(p),
-      text:     text,
+      text:     filterBadWords(text),
       ts:       Date.now()
     };
     db.ref("chat").push(msg);
@@ -3184,32 +3201,34 @@
 
   function adminResetBadges() {
     if (!confirm("Biztosan törlöd MINDENKI jelvényeit?")) return;
-    if (!firebaseOk) { alert("Firebase nem elérhető!"); return; }
-    db.ref("stats").once("value").then(snap => {
-      const data = snap.val() || {};
-      const updates = {};
-      Object.keys(data).forEach(id => { updates[id + "/badges"] = null; });
-      db.ref("stats").update(updates).then(() => {
-        // Lokális törlés is
-        Object.keys(localStorage).filter(k => k.startsWith("stats_")).forEach(k => {
-          const s = JSON.parse(localStorage.getItem(k) || "{}");
-          delete s.badges;
-          localStorage.setItem(k, JSON.stringify(s));
-        });
-        alert("✅ Mindenki jelvényei törölve!");
-        closeAdmin();
+    // Firebase törlés
+    if (firebaseOk) {
+      db.ref("stats").once("value").then(snap => {
+        const data = snap.val() || {};
+        const updates = {};
+        Object.keys(data).forEach(id => { updates[id + "/badges"] = null; });
+        db.ref("stats").update(updates);
       });
+    }
+    // Lokális törlés MINDEN játékosnál
+    Object.keys(localStorage).filter(k => k.startsWith("stats_")).forEach(k => {
+      try {
+        const s = JSON.parse(localStorage.getItem(k) || "{}");
+        delete s.badges;
+        localStorage.setItem(k, JSON.stringify(s));
+      } catch(e) {}
     });
+    alert("✅ Mindenki jelvényei törölve! (lokálisan és Firebase-ben)");
+    closeAdmin();
   }
 
   function adminResetStats() {
     if (!confirm("Biztosan törlöd MINDENKI statisztikáját? (kekszek megmaradnak)")) return;
-    if (!firebaseOk) { alert("Firebase nem elérhető!"); return; }
-    db.ref("stats").remove().then(() => {
-      Object.keys(localStorage).filter(k => k.startsWith("stats_")).forEach(k => localStorage.removeItem(k));
-      alert("✅ Mindenki statisztikája törölve!");
-      closeAdmin();
-    });
+    if (firebaseOk) db.ref("stats").remove();
+    // Lokális törlés is
+    Object.keys(localStorage).filter(k => k.startsWith("stats_")).forEach(k => localStorage.removeItem(k));
+    alert("✅ Mindenki statisztikája törölve!");
+    closeAdmin();
   }
 
   function adminResetCoins() {
