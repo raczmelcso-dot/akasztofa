@@ -1,0 +1,2358 @@
+﻿<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akasztófa</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── THEME VARIABLES ── */
+    :root {
+      --bg:          linear-gradient(135deg, #e8f4f8 0%, #dce8f0 50%, #e4eaf5 100%);
+      --text:        #2d3748;
+      --card-bg:     #ffffff;
+      --card-border: #d0dce8;
+      --muted:       #5a6a7a;
+      --muted2:      #7a8a9a;
+      --btn-bg:      #ffffff;
+      --btn-border:  #b0c4d8;
+      --badge-bg:    #e0ecf4;
+      --badge-color: #3a5a7a;
+      --hint-bg:     #f0f6fb;
+      --hint-border: #ccdde8;
+      --coin-bg:     #fff8e1;
+      --coin-border: #f9c74f;
+      --coin-color:  #b8860b;
+      --gallows-stroke: #7f8c9a;
+      --back-hover:  #e0ecf4;
+    }
+    body.dark {
+      --bg:          linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      --text:        #e8eaf0;
+      --card-bg:     #1e2a3a;
+      --card-border: #2a3a50;
+      --muted:       #8a9ab0;
+      --muted2:      #6a7a90;
+      --btn-bg:      #1e2a3a;
+      --btn-border:  #3a4a60;
+      --badge-bg:    #1a2a3a;
+      --badge-color: #8ab0d0;
+      --hint-bg:     #1a2535;
+      --hint-border: #2a3a50;
+      --coin-bg:     #2a2010;
+      --coin-border: #c8a030;
+      --coin-color:  #f0c040;
+      --gallows-stroke: #6a7a90;
+      --back-hover:  #1a2a3a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    h1 {
+      font-size: 2.2rem; margin-bottom: 6px; color: #c0392b;
+      letter-spacing: 4px; text-transform: uppercase;
+      text-shadow: 1px 2px 6px rgba(192,57,43,0.15);
+    }
+
+    /* Theme toggle button */
+    #theme-toggle {
+      position: fixed; top: 16px; right: 16px;
+      background: var(--card-bg); border: 1.5px solid var(--btn-border);
+      border-radius: 50%; width: 40px; height: 40px;
+      font-size: 1.2rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: background 0.2s, transform 0.1s;
+      z-index: 100;
+    }
+    #theme-toggle:hover { transform: scale(1.1); }
+    /* MENU */
+    #menu-screen {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 24px; margin-top: 30px; width: 100%; max-width: 480px;
+    }
+    #menu-screen > p { font-size: 1.1rem; color: var(--muted); }
+    .difficulty-cards { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+    .diff-card {
+      background: var(--card-bg); border: 2px solid var(--card-border); border-radius: 16px;
+      padding: 18px 24px; cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      display: flex; align-items: center; gap: 18px;
+      box-shadow: 0 3px 12px rgba(100,130,160,0.1);
+    }
+    .diff-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(100,130,160,0.2); }
+    .diff-card.easy   { border-left: 6px solid #27ae60; }
+    .diff-card.medium { border-left: 6px solid #f39c12; }
+    .diff-card.hard   { border-left: 6px solid #c0392b; }
+    .diff-icon { font-size: 2.2rem; line-height: 1; }
+    .diff-info h2 { font-size: 1.2rem; margin-bottom: 3px; }
+    .diff-info p  { font-size: 0.85rem; color: var(--muted2); margin: 0; }
+    .diff-card.easy   .diff-info h2 { color: #27ae60; }
+    .diff-card.medium .diff-info h2 { color: #f39c12; }
+    .diff-card.hard   .diff-info h2 { color: #c0392b; }
+    /* GAME */
+    #game-screen { display: none; width: 100%; max-width: 700px; }
+    #top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    #back-btn {
+      background: none; border: 1.5px solid var(--btn-border); border-radius: 8px;
+      padding: 5px 14px; font-size: 0.85rem; color: var(--muted); cursor: pointer;
+      transition: background 0.15s;
+    }
+    #back-btn:hover { background: var(--back-hover); }
+    #top-right { display: flex; align-items: center; gap: 10px; }
+    #diff-badge {
+      font-size: 0.85rem; font-weight: bold; padding: 4px 14px;
+      border-radius: 20px; color: #fff;
+    }
+    #diff-badge.easy   { background: #27ae60; }
+    #diff-badge.medium { background: #f39c12; }
+    #diff-badge.hard   { background: #c0392b; }
+    #level-badge {
+      font-size: 0.85rem; font-weight: bold; padding: 4px 14px;
+      border-radius: 20px; background: var(--badge-bg); color: var(--badge-color);
+      border: 1.5px solid var(--btn-border);
+    }
+    /* Coin display */
+    #coin-display {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--coin-bg); border: 1.5px solid var(--coin-border);
+      border-radius: 20px; padding: 4px 14px;
+      font-size: 0.9rem; font-weight: bold; color: var(--coin-color);
+    }
+    #coin-display .coin-icon { font-size: 1.1rem; }
+    /* Hint buy button */
+    #buy-hint-btn {
+      display: none;
+      align-items: center; gap: 6px;
+      background: var(--coin-bg); border: 1.5px solid var(--coin-border);
+      border-radius: 10px; padding: 7px 16px;
+      font-size: 0.9rem; font-weight: bold; color: var(--coin-color);
+      cursor: pointer; transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(249,199,79,0.2);
+    }
+    #buy-hint-btn:hover:not(:disabled) { background: var(--hint-bg); transform: scale(1.05); }
+    #buy-hint-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* Coin earn animation */
+    @keyframes coinPop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+    .coin-pop { animation: coinPop 0.4s ease; }
+
+    /* ── HANGULATOS ANIMÁCIÓK ── */
+
+    /* Figura remegés veszély esetén */
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-4px) rotate(-2deg); }
+      40%     { transform: translateX(4px)  rotate(2deg); }
+      60%     { transform: translateX(-3px) rotate(-1deg); }
+      80%     { transform: translateX(3px)  rotate(1deg); }
+    }
+    .gallows-part.shake { animation: shake 0.5s ease; }
+
+    /* Helyes tipp villanás */
+    @keyframes correctFlash {
+      0%   { background: rgba(39,174,96,0.3); }
+      100% { background: transparent; }
+    }
+    .correct-flash { animation: correctFlash 0.4s ease; }
+
+    /* Rossz tipp villanás */
+    @keyframes wrongFlash {
+      0%   { background: rgba(192,57,43,0.2); }
+      100% { background: transparent; }
+    }
+    .wrong-flash { animation: wrongFlash 0.4s ease; }
+
+    /* Konfetti */
+    #confetti-canvas {
+      position: fixed; inset: 0; pointer-events: none; z-index: 500;
+    }
+
+    /* Cím badge a játékosnál */
+    .player-title {
+      font-size: 0.72rem; padding: 2px 7px; border-radius: 10px;
+      font-weight: bold; color: #fff; margin-left: 4px;
+    }
+    .title-kezdo    { background: #7f8c9a; }
+    .title-haladó   { background: #27ae60; }
+    .title-mester   { background: #2980b9; }
+    .title-bajnok   { background: #8e44ad; }
+    .title-legenda  { background: linear-gradient(90deg,#f39c12,#e74c3c); }
+
+    /* Streak badge */
+    #streak-display {
+      display: none; align-items: center; gap: 5px;
+      background: #fff3e0; border: 1.5px solid #f39c12;
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 0.85rem; font-weight: bold; color: #b7770d;
+    }
+
+    /* Veszély pulzálás a gallows körül */
+    @keyframes dangerPulse {
+      0%,100% { box-shadow: 0 6px 32px rgba(192,57,43,0.18); }
+      50%     { box-shadow: 0 6px 40px rgba(192,57,43,0.55); }
+    }
+    #gallows-container.danger { animation: dangerPulse 1s ease infinite; }
+    #game-container {
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+    }
+    #gallows-container {
+      background: var(--card-bg); border-radius: 20px; padding: 24px 32px;
+      box-shadow: 0 6px 32px rgba(100,120,160,0.18); border: 1px solid var(--card-border);
+    }
+    svg#gallows { width: 220px; height: 260px; }
+    .gallows-part {
+      stroke: #c0392b; stroke-width: 5; stroke-linecap: round;
+      fill: none; opacity: 0; transition: opacity 0.35s ease;
+    }
+    .gallows-part.visible { opacity: 1; }
+    .gallows-structure { stroke: var(--gallows-stroke); stroke-width: 5; stroke-linecap: round; fill: none; }
+    #word-display { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .letter-box {
+      min-width: 32px; height: 44px; padding: 0 2px;
+      border-bottom: 3px solid #c0392b;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; font-weight: bold; color: var(--text);
+      text-transform: uppercase; transition: color 0.3s;
+    }
+    #hint {
+      font-size: 0.95rem; color: var(--muted); font-style: italic;
+      background: var(--hint-bg); padding: 6px 16px; border-radius: 20px;
+      border: 1px solid var(--hint-border);
+    }
+    #hint.hidden { visibility: hidden; }
+    #mistakes-info { font-size: 1rem; color: var(--muted); }
+    #mistakes-info span { color: #c0392b; font-weight: bold; }
+    #keyboard { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 620px; }
+    .key-btn {
+      min-width: 38px; height: 40px; padding: 0 6px;
+      border: 1.5px solid var(--btn-border); border-radius: 9px;
+      background: var(--btn-bg); color: var(--text); font-size: 0.95rem; font-weight: bold;
+      cursor: pointer; text-transform: uppercase;
+      transition: background 0.15s, transform 0.1s, border-color 0.15s;
+      box-shadow: 0 2px 5px rgba(100,130,160,0.1);
+    }
+    .key-btn:hover:not(:disabled) { background: #c0392b; color: #fff; border-color: #c0392b; transform: scale(1.1); }
+    .key-btn:disabled { cursor: not-allowed; opacity: 0.38; }
+    .key-btn.correct  { background: #27ae60; color: #fff; border-color: #27ae60; opacity: 0.65; }
+    .key-btn.wrong    { background: #e74c3c; color: #fff; border-color: #e74c3c; opacity: 0.45; }
+    #message { font-size: 1.5rem; font-weight: bold; min-height: 2rem; text-align: center; }
+    #message.win  { color: #27ae60; }
+    #message.lose { color: #c0392b; }
+    #guessed-letters { font-size: 0.9rem; color: var(--muted2); min-height: 1.2rem; }
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .action-btn {
+      padding: 12px 28px; border: none; border-radius: 12px;
+      font-size: 1rem; font-weight: bold; cursor: pointer; letter-spacing: 1px;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.12); display: none;
+    }
+    .action-btn.green { background: #27ae60; color: #fff; }
+    .action-btn.green:hover { background: #1e8449; transform: scale(1.05); }
+    .action-btn.red   { background: #c0392b; color: #fff; }
+    .action-btn.red:hover   { background: #a93226; transform: scale(1.05); }
+    .action-btn.grey  { background: #7f8c9a; color: #fff; }
+    .action-btn.grey:hover  { background: #5a6a7a; transform: scale(1.05); }
+    /* ── PLAYER SECTION ── */
+    #player-section {
+      width: 100%; background: var(--card-bg); border: 1.5px solid var(--card-border);
+      border-radius: 16px; padding: 18px 20px;
+      box-shadow: 0 3px 12px rgba(100,130,160,0.1);
+    }
+    #player-section h3 {
+      font-size: 1rem; color: var(--muted); margin-bottom: 12px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    #player-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .player-row {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--hint-bg); border: 1.5px solid var(--hint-border);
+      border-radius: 10px; padding: 8px 14px; cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .player-row:hover { box-shadow: 0 2px 8px rgba(100,130,160,0.15); }
+    .player-row.active {
+      border-color: #27ae60;
+      box-shadow: 0 0 0 2px rgba(39,174,96,0.2);
+    }
+    .player-emoji { font-size: 1.4rem; }
+    .player-name  { font-weight: bold; font-size: 1rem; flex: 1; color: var(--text); }
+    .player-coins { font-size: 0.85rem; color: var(--coin-color); }
+    .player-delete {
+      background: none; border: none; cursor: pointer; font-size: 1rem;
+      color: var(--muted2); padding: 2px 6px; border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .player-delete:hover { background: rgba(192,57,43,0.1); color: #c0392b; }
+    /* New player form */
+    #new-player-form {
+      display: none; flex-direction: column; gap: 10px; margin-top: 4px;
+    }
+    #new-player-form input {
+      padding: 9px 14px; border: 1.5px solid var(--btn-border); border-radius: 9px;
+      background: var(--btn-bg); color: var(--text); font-size: 1rem;
+      outline: none; transition: border-color 0.15s;
+    }
+    #new-player-form input:focus { border-color: #27ae60; }
+    .gender-row { display: flex; gap: 10px; }
+    .gender-btn {
+      flex: 1; padding: 10px; border: 1.5px solid var(--btn-border); border-radius: 10px;
+      background: var(--btn-bg); color: var(--text); font-size: 1.3rem;
+      cursor: pointer; transition: border-color 0.15s, background 0.15s;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .gender-btn span { font-size: 0.8rem; font-weight: bold; color: var(--muted); }
+    .gender-btn.selected { border-color: #27ae60; background: rgba(39,174,96,0.08); }
+    .gender-btn.selected span { color: #27ae60; }
+    .form-btns { display: flex; gap: 8px; }
+    .form-btn {
+      flex: 1; padding: 9px; border: none; border-radius: 9px;
+      font-size: 0.95rem; font-weight: bold; cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .form-btn.save   { background: #27ae60; color: #fff; }
+    .form-btn.save:hover   { background: #1e8449; transform: scale(1.02); }
+    .form-btn.cancel { background: var(--hint-bg); color: var(--muted); border: 1.5px solid var(--btn-border); }
+    .form-btn.cancel:hover { background: var(--back-hover); }
+    #add-player-btn {
+      width: 100%; padding: 9px; border: 1.5px dashed var(--btn-border);
+      border-radius: 10px; background: none; color: var(--muted);
+      font-size: 0.95rem; cursor: pointer; transition: background 0.15s;
+    }
+    #add-player-btn:hover { background: var(--hint-bg); }
+    /* Active player bar in game */
+    #active-player-bar {
+      font-size: 0.9rem; color: var(--muted); display: none;
+      align-items: center; gap: 6px;
+    }
+    /* ── BONUS BADGE ── */
+    #bonus-badge {
+      display: none; align-items: center; gap: 8px;
+      border-radius: 12px; padding: 8px 18px;
+      font-size: 0.95rem; font-weight: bold;
+      border: 2px solid; animation: bonusPop 0.4s ease;
+    }
+    #bonus-badge.timer  { background: #fff3e0; border-color: #f39c12; color: #b7770d; }
+    #bonus-badge.double { background: #e8f8f0; border-color: #27ae60; color: #1a7a45; }
+    body.dark #bonus-badge.timer  { background: #2a1e08; border-color: #f39c12; color: #f0b030; }
+    body.dark #bonus-badge.double { background: #0a2018; border-color: #27ae60; color: #40c070; }
+    @keyframes bonusPop {
+      0%   { transform: scale(0.7); opacity: 0; }
+      70%  { transform: scale(1.08); }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+    #timer-wrap {
+      display: none; flex-direction: column; align-items: center; gap: 4px;
+    }
+    #timer-bar-bg {
+      width: 220px; height: 10px; background: var(--hint-bg);
+      border-radius: 10px; overflow: hidden; border: 1px solid var(--hint-border);
+    }
+    #timer-bar {
+      height: 100%; width: 100%; background: #f39c12;
+      border-radius: 10px; transition: width 1s linear, background 0.5s;
+    }
+    #timer-text { font-size: 0.85rem; color: var(--muted); font-weight: bold; }
+
+    /* ── KATEGÓRIA ── */
+    #category-screen {
+      display: none; flex-direction: column; align-items: center;
+      gap: 20px; width: 100%; max-width: 480px; margin-top: 10px;
+    }
+    #category-screen h2 { font-size: 1.3rem; color: var(--text); text-align: center; }
+    .category-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; width: 100%;
+    }
+    .cat-card {
+      background: var(--card-bg); border: 2px solid var(--card-border);
+      border-radius: 14px; padding: 16px 12px;
+      cursor: pointer; text-align: center;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+      box-shadow: 0 2px 8px rgba(100,130,160,0.1);
+    }
+    .cat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(100,130,160,0.2); border-color: #c0392b; }
+    .cat-card.selected { border-color: #27ae60; background: rgba(39,174,96,0.07); }
+    .cat-icon { font-size: 2rem; margin-bottom: 6px; }
+    .cat-name { font-size: 0.95rem; font-weight: bold; color: var(--text); }
+    .cat-count { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    #cat-back-btn {
+      background: none; border: 1.5px solid var(--btn-border); border-radius: 8px;
+      padding: 8px 20px; font-size: 0.9rem; color: var(--muted); cursor: pointer;
+      transition: background 0.15s; align-self: flex-start;
+    }
+    #cat-back-btn:hover { background: var(--back-hover); }
+    /* Kategória badge a játékban */
+    #cat-badge {
+      font-size: 0.8rem; padding: 3px 10px; border-radius: 12px;
+      background: var(--hint-bg); border: 1px solid var(--hint-border);
+      color: var(--muted); font-weight: bold;
+    }
+
+    #level-complete {
+      display: none; flex-direction: column; align-items: center; gap: 14px;
+      background: var(--card-bg); border-radius: 20px; padding: 32px 40px;
+      box-shadow: 0 8px 40px rgba(39,174,96,0.2); border: 2px solid #27ae60;
+      text-align: center;
+    }
+    #level-complete h2 { font-size: 1.8rem; color: #27ae60; }
+    #level-complete p  { font-size: 1rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<button id="theme-toggle" onclick="toggleTheme()" title="Téma váltás">🌙</button>
+<canvas id="confetti-canvas"></canvas>
+
+<!-- PIN modal -->
+<div id="pin-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+  <div style="background:var(--card-bg); border-radius:20px; padding:32px 28px; width:300px; display:flex; flex-direction:column; gap:16px; box-shadow:0 8px 40px rgba(0,0,0,0.3);">
+    <h3 style="text-align:center; color:var(--text); font-size:1.2rem;" id="pin-modal-title">🔒 Add meg a PIN kódod</h3>
+    <input type="password" id="pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric"
+      placeholder="• • • •"
+      style="text-align:center; font-size:1.8rem; letter-spacing:8px; padding:10px; border:1.5px solid var(--btn-border); border-radius:10px; background:var(--btn-bg); color:var(--text); outline:none;" />
+    <p id="pin-error" style="color:#c0392b; font-size:0.85rem; text-align:center; display:none;">❌ Hibás PIN! Próbáld újra.</p>
+    <div style="display:flex; gap:10px;">
+      <button onclick="confirmPin()" style="flex:1; padding:10px; background:#27ae60; color:#fff; border:none; border-radius:10px; font-weight:bold; font-size:1rem; cursor:pointer;">OK</button>
+      <button onclick="closePinModal()" style="flex:1; padding:10px; background:var(--hint-bg); color:var(--muted); border:1.5px solid var(--btn-border); border-radius:10px; font-weight:bold; font-size:1rem; cursor:pointer;">Mégse</button>
+    </div>
+  </div>
+</div>
+
+<h1>Akasztófa</h1>
+
+<!-- MENU -->
+<div id="menu-screen">
+
+  <!-- Ha nincs játékos kiválasztva: nagy figyelmeztető sáv -->
+  <div id="no-player-warning" style="display:none; width:100%; background:#fff3e0; border:2px solid #f39c12; border-radius:14px; padding:14px 20px; text-align:center; color:#b7770d; font-weight:bold; font-size:0.95rem;">
+    ⚠️ Válassz egy játékost vagy hozz létre újat a játék megkezdéséhez!
+  </div>
+
+  <!-- Player section -->
+  <div id="player-section">
+    <h3>👤 Ki játszik most?</h3>
+    <div id="player-list"></div>
+    <div id="new-player-form">
+      <input type="text" id="new-player-name" placeholder="Neved..." maxlength="20" />
+      <input type="password" id="new-player-pin" placeholder="4 jegyű PIN kód..." maxlength="4" pattern="[0-9]*" inputmode="numeric" />
+      <div class="gender-row">
+        <button class="gender-btn" id="gender-male" onclick="selectGender('male')">
+          👨 <span>Férfi</span>
+        </button>
+        <button class="gender-btn" id="gender-female" onclick="selectGender('female')">
+          👩 <span>Nő</span>
+        </button>
+      </div>
+      <div class="form-btns">
+        <button class="form-btn save"   onclick="saveNewPlayer()">Mentés</button>
+        <button class="form-btn cancel" onclick="cancelNewPlayer()">Mégse</button>
+      </div>
+    </div>
+    <button id="add-player-btn" onclick="showNewPlayerForm()">+ Új játékos</button>
+  </div>
+
+  <!-- Leaderboard -->
+  <div id="leaderboard-section" style="width:100%;background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:16px;padding:18px 20px;box-shadow:0 3px 12px rgba(100,130,160,0.1);">
+    <h3 style="font-size:1rem;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">🏆 Ranglista</h3>
+    <div id="leaderboard-list"></div>
+  </div>
+
+  <!-- Difficulty — csak ha van aktív játékos -->
+  <div id="difficulty-section" style="width:100%;">
+    <p id="diff-label" style="font-size:1.1rem;color:var(--muted);text-align:center;">Válassz nehézségi szintet!</p>
+    <div class="difficulty-cards">
+      <div class="diff-card easy" onclick="selectDifficulty('easy')">
+        <div class="diff-icon">😊</div>
+        <div class="diff-info">
+          <h2>Könnyű</h2>
+          <p>Rövid szavak · Tipp látható · 8 próbálkozás · 🍪 +1</p>
+        </div>
+      </div>
+      <div class="diff-card medium" onclick="selectDifficulty('medium')">
+        <div class="diff-icon">🤔</div>
+        <div class="diff-info">
+          <h2>Közepes</h2>
+          <p>Vegyes szavak · Tipp látható · 6 próbálkozás · 🍪 +2</p>
+        </div>
+      </div>
+      <div class="diff-card hard" onclick="selectDifficulty('hard')">
+        <div class="diff-icon">💀</div>
+        <div class="diff-info">
+          <h2>Nehéz</h2>
+          <p>Hosszú szavak · Tipp látható · 5 próbálkozás · 🍪 +3</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CATEGORY SCREEN -->
+<div id="category-screen">
+  <button id="cat-back-btn" onclick="backToDifficulty()">← Vissza</button>
+  <h2 id="cat-title">Válassz kategóriát!</h2>
+  <div class="category-grid">
+    <div class="cat-card" onclick="selectCategory('allatok')">
+      <div class="cat-icon">🐾</div>
+      <div class="cat-name">Állatok</div>
+      <div class="cat-count" id="cnt-allatok"></div>
+    </div>
+    <div class="cat-card" onclick="selectCategory('etelek')">
+      <div class="cat-icon">🍕</div>
+      <div class="cat-name">Ételek</div>
+      <div class="cat-count" id="cnt-etelek"></div>
+    </div>
+    <div class="cat-card" onclick="selectCategory('foldrajz')">
+      <div class="cat-icon">🌍</div>
+      <div class="cat-name">Földrajz</div>
+      <div class="cat-count" id="cnt-foldrajz"></div>
+    </div>
+    <div class="cat-card" onclick="selectCategory('sport')">
+      <div class="cat-icon">⚽</div>
+      <div class="cat-name">Sport</div>
+      <div class="cat-count" id="cnt-sport"></div>
+    </div>
+    <div class="cat-card" onclick="selectCategory('tudomany')">
+      <div class="cat-icon">🔬</div>
+      <div class="cat-name">Tudomány</div>
+      <div class="cat-count" id="cnt-tudomany"></div>
+    </div>
+    <div class="cat-card" onclick="selectCategory('jarmuvek')">
+      <div class="cat-icon">🚗</div>
+      <div class="cat-name">Járművek</div>
+      <div class="cat-count" id="cnt-jarmuvek"></div>
+    </div>
+    <div class="cat-card" onclick="selectCategory('zene')">
+      <div class="cat-icon">🎵</div>
+      <div class="cat-name">Zene</div>
+      <div class="cat-count" id="cnt-zene"></div>
+    </div>
+    <div class="cat-card" onclick="selectCategory('vegyes')">
+      <div class="cat-icon">🎲</div>
+      <div class="cat-name">Vegyes</div>
+      <div class="cat-count" id="cnt-vegyes"></div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div id="top-bar">
+    <button id="back-btn" onclick="goToMenu()">← Menü</button>
+    <div id="top-right">
+      <span id="active-player-bar"></span>
+      <span id="streak-display">🔥 <span id="streak-count">0</span></span>
+      <span id="joker-display" style="display:none; align-items:center; gap:5px; background:#f3e6ff; border:1.5px solid #9b59b6; border-radius:20px; padding:4px 12px; font-size:0.85rem; font-weight:bold; color:#7d3c98;">🃏 <span id="joker-count">0</span></span>
+      <span id="level-badge">1. szint</span>
+      <span id="cat-badge" style="display:none"></span>
+      <span id="diff-badge"></span>
+      <span id="coin-display"><span class="coin-icon">🍪</span><span id="coin-count">0</span></span>
+    </div>
+  </div>
+
+  <div id="game-container">
+    <!-- Level complete overlay (shown instead of gallows on win) -->
+    <div id="level-complete">
+      <div style="font-size:3rem">🎉</div>
+      <h2 id="lc-title">Szint teljesítve!</h2>
+      <p id="lc-sub"></p>
+      <p id="lc-motivation" style="font-size:1.1rem; font-weight:bold; color:#e67e22; display:none; background:#fff8e1; border:2px solid #f9c74f; border-radius:12px; padding:10px 18px; margin-top:4px;"></p>
+      <div class="btn-row" style="display:flex">
+        <button class="action-btn green" id="next-level-btn" onclick="nextLevel()" style="display:inline-block">Következő szint →</button>
+        <button class="action-btn grey"  id="lc-menu-btn"   onclick="goToMenu()"  style="display:inline-block">Menü</button>
+      </div>
+    </div>
+
+    <!-- SZERENCSEKERÉK MODAL -->
+    <div id="wheel-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:998; align-items:center; justify-content:center; flex-direction:column; gap:20px;">
+      <div style="background:var(--card-bg); border-radius:24px; padding:32px 28px; max-width:360px; width:90%; display:flex; flex-direction:column; align-items:center; gap:18px; box-shadow:0 8px 40px rgba(0,0,0,0.4);">
+        <h2 style="color:#e67e22; font-size:1.6rem; text-align:center;">🎰 Szerencsekerék!</h2>
+        <p style="color:var(--muted); font-size:0.9rem; text-align:center;">Elérted a 10. szintet! Pörgesd meg!</p>
+        <div style="position:relative; width:260px; height:260px;">
+          <canvas id="wheel-canvas" width="260" height="260"></canvas>
+          <!-- Mutató -->
+          <div style="position:absolute; top:-14px; left:50%; transform:translateX(-50%); font-size:2rem; line-height:1;">▼</div>
+        </div>
+        <button id="spin-btn" onclick="spinWheel()" style="padding:14px 40px; background:linear-gradient(135deg,#f39c12,#e74c3c); color:#fff; border:none; border-radius:14px; font-size:1.1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 15px rgba(243,156,18,0.4); transition:transform 0.1s;">
+          🎰 Pörgetés!
+        </button>
+        <div id="wheel-result" style="display:none; text-align:center; font-size:1.2rem; font-weight:bold; color:var(--text); background:var(--hint-bg); border:2px solid var(--hint-border); border-radius:12px; padding:12px 20px; width:100%;"></div>
+        <button id="wheel-close-btn" onclick="closeWheel()" style="display:none; padding:10px 28px; background:#27ae60; color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:bold; cursor:pointer;">Tovább →</button>
+      </div>
+    </div>
+
+    <div id="gallows-container">
+      <svg id="gallows" viewBox="0 0 220 260">
+        <line class="gallows-structure" x1="10"  y1="250" x2="210" y2="250"/>
+        <line class="gallows-structure" x1="60"  y1="250" x2="60"  y2="20"/>
+        <line class="gallows-structure" x1="60"  y1="20"  x2="150" y2="20"/>
+        <line class="gallows-structure" x1="150" y1="20"  x2="150" y2="50"/>
+        <circle class="gallows-part" id="part-head"      cx="150" cy="70"  r="20"/>
+        <line   class="gallows-part" id="part-body"      x1="150" y1="90"  x2="150" y2="160"/>
+        <line   class="gallows-part" id="part-arm-left"  x1="150" y1="110" x2="120" y2="140"/>
+        <line   class="gallows-part" id="part-arm-right" x1="150" y1="110" x2="180" y2="140"/>
+        <line   class="gallows-part" id="part-leg-left"  x1="150" y1="160" x2="120" y2="200"/>
+        <line   class="gallows-part" id="part-leg-right" x1="150" y1="160" x2="180" y2="200"/>
+      </svg>
+    </div>
+
+    <div id="hint"></div>
+    <div id="bonus-badge"></div>
+    <div id="timer-wrap">
+      <div id="timer-bar-bg"><div id="timer-bar"></div></div>
+      <div id="timer-text">60</div>
+    </div>
+    <div id="word-display"></div>
+    <button id="buy-hint-btn" onclick="buyHint()">🍪 Betű felfedése (1 érme)</button>
+    <button id="joker-btn" onclick="useJoker()" style="display:none; align-items:center; gap:6px; background:#f3e6ff; border:1.5px solid #9b59b6; border-radius:10px; padding:7px 16px; font-size:0.9rem; font-weight:bold; color:#7d3c98; cursor:pointer; transition:background 0.15s, transform 0.1s;">🃏 Joker használata (3 betű)</button>
+    <div id="mistakes-info">Hibák: <span id="mistake-count">0</span> / <span id="max-mistakes-display">6</span></div>
+    <div id="guessed-letters"></div>
+    <div id="message"></div>
+    <div id="keyboard"></div>
+    <div class="btn-row">
+      <button id="retry-btn"  class="action-btn red"  onclick="retryLevel()">Újra próbálom</button>
+      <button id="menu-btn"   class="action-btn grey" onclick="goToMenu()">Menü</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // ── FIREBASE SETUP ──
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCI9qMS7-4SfrczQz5pkniWCjlgflkVino",
+    authDomain:        "akasztofa-19aac.firebaseapp.com",
+    databaseURL:       "https://akasztofa-19aac-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:         "akasztofa-19aac",
+    storageBucket:     "akasztofa-19aac.firebasestorage.app",
+    messagingSenderId: "256676433357",
+    appId:             "1:256676433357:web:a60539c8503a419eb80884"
+  };
+
+  let db = null;
+  let playersRef = null;
+  let firebaseOk = false;
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    playersRef = db.ref("players");
+    firebaseOk = true;
+  } catch(e) {
+    console.warn("Firebase nem elérhető, localStorage módban fut.", e);
+  }
+
+  // ── Player management ──
+  let players        = JSON.parse(localStorage.getItem("akasztofaPlayers") || "[]");
+  let activePlayerId = localStorage.getItem("akasztofaActivePlayer") || null;
+  let newPlayerGender = null;
+
+  // Ha Firebase elérhető: valós idejű szinkron
+  if (firebaseOk) {
+    playersRef.on("value", snapshot => {
+      const data = snapshot.val() || {};
+      players = Object.values(data);
+      players.sort((a, b) => b.coins - a.coins);
+      renderPlayerList();
+      renderLeaderboard();
+      const p = getActivePlayer();
+      if (p) { coins = p.coins; updateCoinDisplay(); }
+      updateActivePlayerBar();
+    });
+  }
+
+  function savePlayer(p) {
+    // Frissítjük a helyi listában is
+    const idx = players.findIndex(x => x.id === p.id);
+    if (idx >= 0) players[idx] = p; else players.push(p);
+    localStorage.setItem("akasztofaPlayers", JSON.stringify(players));
+    localStorage.setItem("akasztofaActivePlayer", activePlayerId || "");
+    if (firebaseOk) db.ref("players/" + p.id).set(p);
+  }
+
+  function getActivePlayer() {
+    return players.find(p => p.id === activePlayerId) || null;
+  }
+
+  function genderEmoji(gender) {
+    return gender === "female" ? "👩" : "👨";
+  }
+
+  function renderPlayerList() {
+    const list = document.getElementById("player-list");
+    if (!list) return;
+    list.innerHTML = "";
+    if (players.length === 0) {
+      list.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);text-align:center;padding:6px 0">Még nincs játékos felvéve.</p>';
+      return;
+    }
+    [...players].sort((a,b) => b.coins - a.coins).forEach(p => {
+      const row = document.createElement("div");
+      row.className = "player-row" + (p.id === activePlayerId ? " active" : "");
+      const title = getPlayerTitle(p.coins);
+      row.innerHTML =
+        '<span class="player-emoji">' + genderEmoji(p.gender) + '</span>' +
+        '<span class="player-name">'  + p.name + '<span class="player-title ' + title.cls + '">' + title.label + '</span></span>' +
+        '<span class="player-coins">🍪 ' + p.coins + '</span>' +
+        '<button class="player-delete" onclick="deletePlayer(\'' + p.id + '\', event)" title="Törlés">✕</button>';
+      row.addEventListener("click", () => selectPlayer(p.id));
+      list.appendChild(row);
+    });
+  }
+
+  function renderLeaderboard() {
+    const lb = document.getElementById("leaderboard-list");
+    if (!lb) return;
+    const sorted = [...players].sort((a, b) => b.coins - a.coins);
+    lb.innerHTML = "";
+    if (sorted.length === 0) {
+      lb.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);text-align:center">Még senki sem játszott.</p>';
+      return;
+    }
+    const medals = ["🥇","🥈","🥉"];
+    sorted.forEach((p, i) => {
+      const row = document.createElement("div");
+      row.className = "player-row" + (p.id === activePlayerId ? " active" : "");
+      row.style.cursor = "default";
+      row.innerHTML =
+        '<span class="player-emoji">' + (medals[i] || (i+1)+".") + '</span>' +
+        '<span class="player-emoji">' + genderEmoji(p.gender) + '</span>' +
+        '<span class="player-name">'  + p.name + '</span>' +
+        '<span class="player-coins">🍪 ' + p.coins + '</span>';
+      lb.appendChild(row);
+    });
+  }
+
+  function selectPlayer(id) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    if (id === activePlayerId) return; // már aktív, nem kell PIN
+    openPinModal("Add meg a PIN kódod: " + p.name, (entered) => {
+      if (entered === p.pin) {
+        closePinModal();
+        activePlayerId = id;
+        localStorage.setItem("akasztofaActivePlayer", id);
+        renderPlayerList();
+        renderLeaderboard();
+        updateActivePlayerBar();
+        updateMenuState();
+        coins = p.coins;
+        updateCoinDisplay();
+      } else {
+        document.getElementById("pin-error").style.display = "block";
+        document.getElementById("pin-input").value = "";
+        document.getElementById("pin-input").focus();
+      }
+    });
+  }
+
+  function deletePlayer(id, e) {
+    e.stopPropagation();
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    openPinModal("PIN kód a törléshez: " + p.name, (entered) => {
+      if (entered === p.pin) {
+        closePinModal();
+        players = players.filter(x => x.id !== id);
+        localStorage.setItem("akasztofaPlayers", JSON.stringify(players));
+        if (firebaseOk) db.ref("players/" + id).remove();
+        if (activePlayerId === id) {
+          activePlayerId = null;
+          localStorage.removeItem("akasztofaActivePlayer");
+          coins = 0;
+          updateCoinDisplay();
+        }
+        renderPlayerList();
+        renderLeaderboard();
+        updateActivePlayerBar();
+        updateMenuState();
+      } else {
+        document.getElementById("pin-error").style.display = "block";
+        document.getElementById("pin-input").value = "";
+        document.getElementById("pin-input").focus();
+      }
+    });
+  }
+
+  function showNewPlayerForm() {
+    document.getElementById("new-player-form").style.display = "flex";
+    document.getElementById("add-player-btn").style.display  = "none";
+    document.getElementById("new-player-name").value = "";
+    document.getElementById("new-player-pin").value  = "";
+    newPlayerGender = null;
+    document.getElementById("gender-male").classList.remove("selected");
+    document.getElementById("gender-female").classList.remove("selected");
+    document.getElementById("new-player-name").focus();
+  }
+
+  function cancelNewPlayer() {
+    document.getElementById("new-player-form").style.display = "none";
+    document.getElementById("add-player-btn").style.display  = "block";
+  }
+
+  function selectGender(g) {
+    newPlayerGender = g;
+    document.getElementById("gender-male").classList.toggle("selected",   g === "male");
+    document.getElementById("gender-female").classList.toggle("selected", g === "female");
+  }
+
+  function saveNewPlayer() {
+    const name = document.getElementById("new-player-name").value.trim();
+    const pin  = document.getElementById("new-player-pin").value.trim();
+    if (!name) { document.getElementById("new-player-name").focus(); return; }
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      alert("Kérlek adj meg egy 4 jegyű PIN kódot (csak számok)!"); return;
+    }
+    if (!newPlayerGender) { alert("Kérlek válassz nemet!"); return; }
+    const newP = { id: Date.now().toString(), name, gender: newPlayerGender, coins: 0, pin };
+    activePlayerId = newP.id;
+    savePlayer(newP);
+    cancelNewPlayer();
+    renderPlayerList();
+    renderLeaderboard();
+    updateActivePlayerBar();
+    updateMenuState();
+    coins = 0;
+    updateCoinDisplay();
+    const pending = document.getElementById("add-player-btn").dataset.pendingDiff;
+    if (pending) {
+      delete document.getElementById("add-player-btn").dataset.pendingDiff;
+      selectDifficulty(pending);
+    }
+  }
+
+  // ── PIN modal ──
+  let pinCallback = null;
+
+  function openPinModal(title, callback) {
+    pinCallback = callback;
+    document.getElementById("pin-modal-title").textContent = "🔒 " + title;
+    document.getElementById("pin-input").value = "";
+    document.getElementById("pin-error").style.display = "none";
+    document.getElementById("pin-modal").style.display = "flex";
+    setTimeout(() => document.getElementById("pin-input").focus(), 100);
+  }
+
+  function closePinModal() {
+    document.getElementById("pin-modal").style.display = "none";
+    pinCallback = null;
+  }
+
+  function confirmPin() {
+    const entered = document.getElementById("pin-input").value.trim();
+    if (pinCallback) pinCallback(entered);
+  }
+
+  function updateActivePlayerBar() {
+    const bar = document.getElementById("active-player-bar");
+    const p   = getActivePlayer();
+    if (p) {
+      bar.textContent = genderEmoji(p.gender) + " " + p.name;
+      bar.style.display = "inline-flex";
+    } else {
+      bar.style.display = "none";
+    }
+  }
+
+  // ── Word pools ──
+  const wordsByDifficulty = {
+    easy: [
+      { word: "alma",      hint: "Piros vagy zöld gyümölcs" },
+      { word: "kutya",     hint: "Az ember legjobb barátja" },
+      { word: "macska",    hint: "Dorombol és nyávog" },
+      { word: "ház",       hint: "Benne lakunk" },
+      { word: "nap",       hint: "Süt az égen" },
+      { word: "hold",      hint: "Éjjel világít" },
+      { word: "víz",       hint: "Ezt isszuk a leggyakrabban" },
+      { word: "kenyér",    hint: "Sütőben készül" },
+      { word: "labda",     hint: "Gömb alakú játékszer" },
+      { word: "zsiráf",    hint: "Hosszú nyakú állat" },
+      { word: "bicikli",   hint: "Két kerekű jármű" },
+      { word: "teknős",    hint: "Páncélos állat" },
+      { word: "szamóca",   hint: "Piros gyümölcs" },
+      { word: "vulkán",    hint: "Tüzet okád a hegyből" },
+      { word: "óceán",     hint: "Hatalmas vízfelület" },
+      { word: "mérnök",    hint: "Épít és tervez" },
+      { word: "egér",      hint: "Kis rágcsáló" },
+      { word: "nyúl",      hint: "Hosszú fülű állat" },
+      { word: "béka",      hint: "Kuruttyol a tónál" },
+      { word: "hal",       hint: "Vízben él" },
+      { word: "virág",     hint: "Kertben nő, szép színes" },
+      { word: "madár",     hint: "Szárnyai vannak, repül" },
+      { word: "fa",        hint: "Erdőben sok van belőle" },
+      { word: "ló",        hint: "Lovagolni lehet rajta" },
+      { word: "tehén",     hint: "Tejet ad" },
+      { word: "disznó",    hint: "Röfög" },
+      { word: "kakas",     hint: "Reggel kukorékol" },
+      { word: "kacsa",     hint: "Vízben úszik, hápog" },
+      { word: "liba",      hint: "Gágog a réten" },
+      { word: "farkas",    hint: "Erdei ragadozó" },
+      { word: "medve",     hint: "Nagy barna erdei állat" },
+      { word: "róka",      hint: "Ravasz erdei állat" },
+      { word: "szarvas",   hint: "Agancsai vannak" },
+      { word: "mókus",     hint: "Makkal táplálkozik" },
+      { word: "sün",       hint: "Tüskés kis állat" },
+      { word: "bagoly",    hint: "Éjjel aktív madár" },
+      { word: "sas",       hint: "Nagy ragadozó madár" },
+      { word: "hattyú",    hint: "Fehér vízimadár" },
+      { word: "delfin",    hint: "Okos tengeri emlős" },
+      { word: "pingvin",   hint: "Nem tud repülni, hideg helyen él" },
+      { word: "teve",      hint: "Púpja van, sivatagban él" },
+      { word: "zebra",     hint: "Csíkos afrikai állat" },
+      { word: "oroszlán",  hint: "Az állatok királya" },
+      { word: "tigris",    hint: "Csíkos nagy macska" },
+      { word: "majom",     hint: "Fán ugrál, banánt eszik" },
+      { word: "kígyó",     hint: "Lába nincs, csúszik" },
+      { word: "papagáj",   hint: "Színes madár, beszélni tud" },
+      { word: "sütemény",  hint: "Édes sült finomság" },
+      { word: "torta",     hint: "Születésnapra szokás" },
+      { word: "pizza",     hint: "Olasz kerek étel" },
+      { word: "tészta",    hint: "Olasz fogás, sok fajtája van" },
+      { word: "leves",     hint: "Forró folyékony étel" },
+      { word: "sajt",      hint: "Tejből készül, sárga" },
+      { word: "tojás",     hint: "Tyúk tojja" },
+      { word: "narancs",   hint: "Narancssárga citrusfélé" },
+      { word: "banán",     hint: "Sárga görbe gyümölcs" },
+      { word: "szőlő",     hint: "Fürtökben nő" },
+      { word: "dinnye",    hint: "Nyáron frissítő, piros belül" },
+      { word: "körte",     hint: "Körtealakú gyümölcs" },
+      { word: "barack",    hint: "Narancssárga nyári gyümölcs" },
+      { word: "cseresznye",hint: "Piros kis gyümölcs, nyáron érik" },
+      { word: "autó",      hint: "Négy kerekű jármű" },
+      { word: "vonat",     hint: "Sínen közlekedik" },
+      { word: "hajó",      hint: "Vízen közlekedik" },
+      { word: "repülő",    hint: "Az égen száll" },
+      { word: "motor",     hint: "Két kerekű motoros jármű" },
+      { word: "traktor",   hint: "Mezőgazdasági gép" },
+      { word: "könyv",     hint: "Olvasni lehet" },
+      { word: "ceruza",    hint: "Rajzolni lehet vele" },
+      { word: "szék",      hint: "Ülni lehet rajta" },
+      { word: "asztal",    hint: "Ennél eszünk" },
+      { word: "ablak",     hint: "Átlátszó, fényt enged be" },
+      { word: "ajtó",      hint: "Ezen lépünk be" },
+      { word: "tükör",     hint: "Visszatükrözi az arcod" },
+      { word: "lámpa",     hint: "Fényt ad" },
+      { word: "óra",       hint: "Az időt mutatja" },
+      { word: "telefon",   hint: "Hívni lehet vele" },
+      { word: "cipő",      hint: "A lábunkra vesszük" },
+      { word: "kalap",     hint: "A fejünkre tesszük" },
+      { word: "kabát",     hint: "Télen viseljük" },
+      { word: "esernyő",   hint: "Esőben véd" },
+      { word: "gitár",     hint: "Húros hangszer" },
+      { word: "dob",       hint: "Ütős hangszer" },
+      { word: "zongora",   hint: "Billentyűs hangszer" },
+      { word: "foci",      hint: "Labdás csapatsport" },
+      { word: "úszás",     hint: "Vízben sportolás" },
+      { word: "tánc",      hint: "Zenére mozgás" },
+      { word: "festés",    hint: "Ecsettel alkotás" },
+    ],
+    medium: [
+      { word: "elefánt",     hint: "Nagy afrikai állat" },
+      { word: "helikopter",  hint: "Forgószárnyas repülő" },
+      { word: "krokodil",    hint: "Veszélyes hüllő" },
+      { word: "szivárvány",  hint: "Eső után látható" },
+      { word: "pillangó",    hint: "Színes szárnyú rovar" },
+      { word: "napraforgó",  hint: "Sárga virág" },
+      { word: "labdarúgás",  hint: "Legnépszerűbb sport" },
+      { word: "kalandor",    hint: "Aki kalandokat keres" },
+      { word: "szimfónia",   hint: "Zenekari mű" },
+      { word: "dzsungel",    hint: "Sűrű trópusi erdő" },
+      { word: "körhinta",    hint: "Vidámparki eszköz" },
+      { word: "tűzoltó",     hint: "Tüzet olt" },
+      { word: "szélmalom",   hint: "Szél hajtja" },
+      { word: "csillagász",  hint: "Az eget figyeli" },
+      { word: "tengerpart",  hint: "Ahol a tenger a szárazfölddel találkozik" },
+      { word: "könyvtár",    hint: "Könyvek helye" },
+      { word: "repülőgép",   hint: "Az égen száll" },
+      { word: "csokoládé",   hint: "Édes finomság" },
+      { word: "dinoszaurusz",hint: "Kihalt óriás állat" },
+      { word: "szélvihar",   hint: "Erős szél" },
+      { word: "cirkusz",     hint: "Artisták és bohócok helye" },
+      { word: "akvárium",    hint: "Halak üvegháza" },
+      { word: "múzeum",      hint: "Régi tárgyak gyűjteménye" },
+      { word: "stadion",     hint: "Sportmérkőzések helyszíne" },
+      { word: "kórház",      hint: "Betegeket gyógyítanak" },
+      { word: "rendőrség",   hint: "Rendet tart fenn" },
+      { word: "tűzoltóság",  hint: "Tüzet olt, mentést végez" },
+      { word: "pályaudvar",  hint: "Vonatok indulnak innen" },
+      { word: "repülőtér",   hint: "Repülők szállnak fel innen" },
+      { word: "kikötő",      hint: "Hajók állomása" },
+      { word: "vásár",       hint: "Sok árus egy helyen" },
+      { word: "étterem",     hint: "Ételeket szolgálnak fel" },
+      { word: "pékség",      hint: "Kenyeret és süteményt árulnak" },
+      { word: "patika",      hint: "Gyógyszereket árulnak" },
+      { word: "fodrász",     hint: "Hajat vág és fest" },
+      { word: "kovács",      hint: "Vasat kalapál" },
+      { word: "festő",       hint: "Képeket alkot" },
+      { word: "szobrász",    hint: "Szobrokat készít" },
+      { word: "tanár",       hint: "Iskolában tanít" },
+      { word: "orvos",       hint: "Betegeket gyógyít" },
+      { word: "pilóta",      hint: "Repülőt vezet" },
+      { word: "szakács",     hint: "Ételt főz" },
+      { word: "katona",      hint: "Az országot védi" },
+      { word: "bíró",        hint: "Igazságot szolgáltat" },
+      { word: "tudós",       hint: "Kutat és felfedez" },
+      { word: "zenész",      hint: "Hangszeren játszik" },
+      { word: "színész",     hint: "Szerepeket játszik" },
+      { word: "sportoló",    hint: "Versenyeken vesz részt" },
+      { word: "kertész",     hint: "Növényeket gondoz" },
+      { word: "halász",      hint: "Halat fog" },
+      { word: "vadász",      hint: "Erdőben vadászik" },
+      { word: "bányász",     hint: "A föld alatt dolgozik" },
+      { word: "villamos",    hint: "Sínen közlekedő városi jármű" },
+      { word: "metró",       hint: "Föld alatti vasút" },
+      { word: "mentőautó",   hint: "Betegeket szállít" },
+      { word: "tűzoltóautó", hint: "Piros, szirénázik" },
+      { word: "bulldózer",   hint: "Épít és rombol" },
+      { word: "daru",        hint: "Nehéz tárgyakat emel" },
+      { word: "tengeralattjáró", hint: "Víz alatt úszik" },
+      { word: "vitorlás",    hint: "Szél hajtja a vízen" },
+      { word: "kajakozás",   hint: "Evezős vízi sport" },
+      { word: "kerékpározás",hint: "Két keréken közlekedés" },
+      { word: "lovaglás",    hint: "Lovon ülve sportolás" },
+      { word: "síelés",      hint: "Havas hegyeken csúszás" },
+      { word: "korcsolya",   hint: "Jégen csúszás" },
+      { word: "kosárlabda",  hint: "Kosárba kell dobni a labdát" },
+      { word: "röplabda",    hint: "Háló felett ütik a labdát" },
+      { word: "tenisz",      hint: "Ütővel játsszák" },
+      { word: "asztalitenisz",hint: "Kis labdával, asztalon" },
+      { word: "tollaslabda", hint: "Tollal díszített labda" },
+      { word: "birkózás",    hint: "Küzdősport" },
+      { word: "bokszolás",   hint: "Ökölvívás" },
+      { word: "tornász",     hint: "Akrobatikus sportot végez" },
+      { word: "maratonfutás",hint: "Nagyon hosszú futóverseny" },
+      { word: "kerékpárverseny", hint: "Biciklivel versenyeznek" },
+      { word: "vízilabda",   hint: "Medencében játsszák" },
+      { word: "szinkronúszás",hint: "Zenére úsznak együtt" },
+      { word: "búvárkodás",  hint: "Víz alatt felfedezés" },
+      { word: "ejtőernyőzés",hint: "Repülőből ugrik" },
+      { word: "sziklamászás",hint: "Függőleges felületen mászás" },
+    ],
+    hard: [
+      { word: "számítógép",           hint: "Programokat futtat" },
+      { word: "magyarország",         hint: "Közép-európai ország" },
+      { word: "programozás",          hint: "Kódot írni" },
+      { word: "természettudomány",    hint: "Fizika, kémia, biológia együtt" },
+      { word: "egészségügyi",         hint: "Orvosokhoz, kórházhoz kapcsolódó" },
+      { word: "rendszergazda",        hint: "A számítógépes hálózatot kezeli" },
+      { word: "szoftverfejlesztő",    hint: "Alkalmazásokat ír" },
+      { word: "alkotmányozás",        hint: "Alaptörvény megalkotása" },
+      { word: "megkülönböztetés",     hint: "Különbséget tenni dolgok között" },
+      { word: "visszaemlékezés",      hint: "A múltra gondolni" },
+      { word: "körülményeskedés",     hint: "Feleslegesen bonyolítani valamit" },
+      { word: "összefüggésrendszer",  hint: "Dolgok közötti kapcsolatok hálója" },
+      { word: "közlekedési",          hint: "Autókhoz, utakhoz kapcsolódó" },
+      { word: "világűr",              hint: "A Föld légkörén túl" },
+      { word: "csillagvizsgáló",      hint: "Teleszkópok otthona" },
+      { word: "hőmérsékleti",         hint: "A meleghez vagy hideghez kapcsolódó" },
+      { word: "légkondicionáló",      hint: "Hűti a szobát nyáron" },
+      { word: "vízvezetékszerelő",    hint: "Csöveket javít" },
+      { word: "könyvkiadó",           hint: "Könyveket nyomtat és terjeszt" },
+      { word: "tájékoztatás",         hint: "Információt adni valakinek" },
+      { word: "igazságszolgáltatás",  hint: "Bíróságok és törvények rendszere" },
+      { word: "környezetvédelem",     hint: "A természet megóvása" },
+      { word: "fenntarthatóság",      hint: "A jövő generációkra gondolni" },
+      { word: "globalizáció",         hint: "A világ összekapcsolódása" },
+      { word: "demokratizálódás",     hint: "Demokrácia terjedése" },
+      { word: "informatika",          hint: "Számítástechnika tudománya" },
+      { word: "mesterségesintelligencia", hint: "Gépek tanulnak és gondolkodnak" },
+      { word: "nanotechnológia",      hint: "Nagyon apró dolgok tudománya" },
+      { word: "biotechnológia",       hint: "Élő szervezetek technológiai felhasználása" },
+      { word: "kriptográfia",         hint: "Titkosítás tudománya" },
+      { word: "kvantumszámítógép",    hint: "A jövő számítógépe" },
+      { word: "neurológia",           hint: "Az idegrendszer tudománya" },
+      { word: "pszichológia",         hint: "Az emberi lélek tudománya" },
+      { word: "szociológia",          hint: "A társadalom tudománya" },
+      { word: "közgazdaságtan",       hint: "A gazdaság tudománya" },
+      { word: "antropológia",         hint: "Az emberiség tudománya" },
+      { word: "archeológia",          hint: "Régi civilizációkat kutat" },
+      { word: "paleontológia",        hint: "Kihalt élőlényeket kutat" },
+      { word: "meteorológia",         hint: "Az időjárás tudománya" },
+      { word: "oceanográfia",         hint: "A tengerek tudománya" },
+      { word: "vulkanológia",         hint: "A vulkánok tudománya" },
+      { word: "seismológia",          hint: "A földrengések tudománya" },
+      { word: "asztrofizika",         hint: "Csillagok fizikája" },
+      { word: "kozmológia",           hint: "Az univerzum tudománya" },
+      { word: "genetika",             hint: "Az öröklődés tudománya" },
+      { word: "immunológia",          hint: "Az immunrendszer tudománya" },
+      { word: "farmakológia",         hint: "A gyógyszerek tudománya" },
+      { word: "epidemiológia",        hint: "Járványok terjedésének tudománya" },
+      { word: "kardiológia",          hint: "A szív tudománya" },
+      { word: "dermatológia",         hint: "A bőr tudománya" },
+    ]
+  };
+
+  // ── Kategória szólisták ──
+  const categoryWords = {
+    allatok: [
+      // KÖNNYŰ
+      { word: "kutya",        hint: "Az ember legjobb barátja",          diff: "easy" },
+      { word: "macska",       hint: "Dorombol és nyávog",                diff: "easy" },
+      { word: "egér",         hint: "Kis rágcsáló",                      diff: "easy" },
+      { word: "nyúl",         hint: "Hosszú fülű állat",                 diff: "easy" },
+      { word: "béka",         hint: "Kuruttyol a tónál",                 diff: "easy" },
+      { word: "hal",          hint: "Vízben él",                         diff: "easy" },
+      { word: "madár",        hint: "Szárnyai vannak, repül",            diff: "easy" },
+      { word: "ló",           hint: "Lovagolni lehet rajta",             diff: "easy" },
+      { word: "tehén",        hint: "Tejet ad",                          diff: "easy" },
+      { word: "disznó",       hint: "Röfög",                             diff: "easy" },
+      { word: "kakas",        hint: "Reggel kukorékol",                  diff: "easy" },
+      { word: "kacsa",        hint: "Vízben úszik, hápog",               diff: "easy" },
+      { word: "farkas",       hint: "Erdei ragadozó",                    diff: "easy" },
+      { word: "medve",        hint: "Nagy barna erdei állat",            diff: "easy" },
+      { word: "róka",         hint: "Ravasz erdei állat",                diff: "easy" },
+      { word: "szarvas",      hint: "Agancsai vannak",                   diff: "easy" },
+      { word: "mókus",        hint: "Makkal táplálkozik",                diff: "easy" },
+      { word: "sün",          hint: "Tüskés kis állat",                  diff: "easy" },
+      { word: "bagoly",       hint: "Éjjel aktív madár",                 diff: "easy" },
+      { word: "sas",          hint: "Nagy ragadozó madár",               diff: "easy" },
+      { word: "hattyú",       hint: "Fehér vízimadár",                   diff: "easy" },
+      { word: "delfin",       hint: "Okos tengeri emlős",                diff: "easy" },
+      { word: "pingvin",      hint: "Nem tud repülni, hideg helyen él",  diff: "easy" },
+      { word: "teve",         hint: "Púpja van, sivatagban él",          diff: "easy" },
+      { word: "zebra",        hint: "Csíkos afrikai állat",              diff: "easy" },
+      { word: "birka",        hint: "Gyapját nyírják",                   diff: "easy" },
+      { word: "kecske",       hint: "Mekeg, szarvai vannak",             diff: "easy" },
+      { word: "szamár",       hint: "Iáhog, terhet hord",                diff: "easy" },
+      { word: "galamb",       hint: "Béke szimbóluma",                   diff: "easy" },
+      { word: "varjú",        hint: "Fekete okos madár",                 diff: "easy" },
+      { word: "macska",      hint: "Dorombol és nyávog",           diff: "easy"   },
+      { word: "egér",        hint: "Kis rágcsáló",                 diff: "easy"   },
+      { word: "nyúl",        hint: "Hosszú fülű állat",            diff: "easy"   },
+      { word: "béka",        hint: "Kuruttyol a tónál",            diff: "easy"   },
+      { word: "hal",         hint: "Vízben él",                    diff: "easy"   },
+      { word: "madár",       hint: "Szárnyai vannak, repül",       diff: "easy"   },
+      { word: "ló",          hint: "Lovagolni lehet rajta",        diff: "easy"   },
+      { word: "tehén",       hint: "Tejet ad",                     diff: "easy"   },
+      { word: "disznó",      hint: "Röfög",                        diff: "easy"   },
+      { word: "kakas",       hint: "Reggel kukorékol",             diff: "easy"   },
+      { word: "kacsa",       hint: "Vízben úszik, hápog",          diff: "easy"   },
+      { word: "farkas",      hint: "Erdei ragadozó",               diff: "easy"   },
+      { word: "medve",       hint: "Nagy barna erdei állat",       diff: "easy"   },
+      { word: "róka",        hint: "Ravasz erdei állat",           diff: "easy"   },
+      { word: "szarvas",     hint: "Agancsai vannak",              diff: "easy"   },
+      { word: "mókus",       hint: "Makkal táplálkozik",           diff: "easy"   },
+      { word: "sün",         hint: "Tüskés kis állat",             diff: "easy"   },
+      { word: "bagoly",      hint: "Éjjel aktív madár",            diff: "easy"   },
+      { word: "sas",         hint: "Nagy ragadozó madár",          diff: "easy"   },
+      { word: "hattyú",      hint: "Fehér vízimadár",              diff: "easy"   },
+      { word: "delfin",      hint: "Okos tengeri emlős",           diff: "easy"   },
+      { word: "pingvin",     hint: "Nem tud repülni, hideg helyen él", diff: "easy" },
+      { word: "teve",        hint: "Púpja van, sivatagban él",     diff: "easy"   },
+      { word: "zebra",       hint: "Csíkos afrikai állat",         diff: "easy"   },
+      // KÖZEPES
+      { word: "oroszlán",     hint: "Az állatok királya",                diff: "medium" },
+      { word: "tigris",       hint: "Csíkos nagy macska",                diff: "medium" },
+      { word: "majom",        hint: "Fán ugrál, banánt eszik",           diff: "medium" },
+      { word: "kígyó",        hint: "Lába nincs, csúszik",               diff: "medium" },
+      { word: "papagáj",      hint: "Színes madár, beszélni tud",        diff: "medium" },
+      { word: "zsiráf",       hint: "Hosszú nyakú állat",                diff: "medium" },
+      { word: "elefánt",      hint: "Nagy afrikai állat",                diff: "medium" },
+      { word: "krokodil",     hint: "Veszélyes hüllő",                   diff: "medium" },
+      { word: "pillangó",     hint: "Színes szárnyú rovar",              diff: "medium" },
+      { word: "teknős",       hint: "Páncélos állat",                    diff: "medium" },
+      { word: "gorilla",      hint: "Nagy emberszabású majom",           diff: "medium" },
+      { word: "gepárd",       hint: "A leggyorsabb szárazföldi állat",   diff: "medium" },
+      { word: "hiéna",        hint: "Kacag hangot ad ki",                diff: "medium" },
+      { word: "strucc",       hint: "Nem tud repülni, fut",              diff: "medium" },
+      { word: "flamingó",     hint: "Rózsaszín lábán áll",               diff: "medium" },
+      { word: "pelikán",      hint: "Nagy csőrű vízimadár",              diff: "medium" },
+      { word: "kenguru",      hint: "Erszényében hordja kicsinyét",      diff: "medium" },
+      { word: "koala",        hint: "Eukaliptuszt eszik, Ausztráliában él", diff: "medium" },
+      { word: "panda",        hint: "Fekete-fehér bambuszevő",           diff: "medium" },
+      { word: "jaguár",       hint: "Foltos nagy macska",                diff: "medium" },
+      { word: "leopárd",      hint: "Foltos ragadozó, fán alszik",       diff: "medium" },
+      { word: "víziló",       hint: "Vízben él, nagy szája van",         diff: "medium" },
+      { word: "orrszarvú",    hint: "Szarvat visel az orrán",            diff: "medium" },
+      { word: "bálna",        hint: "A legnagyobb tengeri emlős",        diff: "medium" },
+      { word: "cápa",         hint: "Veszélyes tengeri ragadozó",        diff: "medium" },
+      { word: "polip",        hint: "Nyolc karja van",                   diff: "medium" },
+      { word: "medúza",       hint: "Átlátszó tengeri állat",            diff: "medium" },
+      { word: "rák",          hint: "Ollói vannak",                      diff: "medium" },
+      { word: "homár",        hint: "Tengeri rák, drága étel",           diff: "medium" },
+      { word: "pingvin",      hint: "Nem tud repülni, hideg helyen él",  diff: "medium" },
+      // NEHÉZ
+      { word: "dinoszaurusz", hint: "Kihalt óriás állat",                diff: "hard" },
+      { word: "kaméleon",     hint: "Színt vált",                        diff: "hard" },
+      { word: "piranha",      hint: "Veszélyes folyami hal",             diff: "hard" },
+      { word: "tarantula",    hint: "Nagy szőrös pók",                   diff: "hard" },
+      { word: "skorpió",      hint: "Mérgező fullánkja van",             diff: "hard" },
+      { word: "iguána",       hint: "Nagy trópusi gyík",                 diff: "hard" },
+      { word: "axolotl",      hint: "Mexikói vízi szalamandra",          diff: "hard" },
+      { word: "platipusz",    hint: "Kacsacsőrű emlős",                  diff: "hard" },
+      { word: "okapi",        hint: "Zsiráf rokona, csíkos lábú",        diff: "hard" },
+      { word: "tapír",        hint: "Ormányos dél-amerikai állat",       diff: "hard" },
+    ],
+    etelek: [
+      // KÖNNYŰ
+      { word: "alma",         hint: "Piros vagy zöld gyümölcs",          diff: "easy" },
+      { word: "kenyér",       hint: "Sütőben készül",                    diff: "easy" },
+      { word: "sajt",         hint: "Tejből készül, sárga",              diff: "easy" },
+      { word: "tojás",        hint: "Tyúk tojja",                        diff: "easy" },
+      { word: "narancs",      hint: "Narancssárga citrusfélé",           diff: "easy" },
+      { word: "banán",        hint: "Sárga görbe gyümölcs",              diff: "easy" },
+      { word: "szőlő",        hint: "Fürtökben nő",                      diff: "easy" },
+      { word: "dinnye",       hint: "Nyáron frissítő, piros belül",      diff: "easy" },
+      { word: "körte",        hint: "Körtealakú gyümölcs",               diff: "easy" },
+      { word: "barack",       hint: "Narancssárga nyári gyümölcs",       diff: "easy" },
+      { word: "leves",        hint: "Forró folyékony étel",              diff: "easy" },
+      { word: "pizza",        hint: "Olasz kerek étel",                  diff: "easy" },
+      { word: "tészta",       hint: "Olasz fogás, sok fajtája van",      diff: "easy" },
+      { word: "torta",        hint: "Születésnapra szokás",              diff: "easy" },
+      { word: "sütemény",     hint: "Édes sült finomság",                diff: "easy" },
+      { word: "szamóca",      hint: "Piros gyümölcs",                    diff: "easy" },
+      { word: "tej",          hint: "Fehér ital, tehén adja",            diff: "easy" },
+      { word: "vaj",          hint: "Kenyérre kenik",                    diff: "easy" },
+      { word: "méz",          hint: "Méhek készítik",                    diff: "easy" },
+      { word: "cukor",        hint: "Édesít",                            diff: "easy" },
+      { word: "só",           hint: "Ételeket ízesít",                   diff: "easy" },
+      { word: "rizs",         hint: "Ázsiai alapétel",                   diff: "easy" },
+      { word: "burgonya",     hint: "Krumpli",                           diff: "easy" },
+      { word: "paradicsom",   hint: "Piros zöldség",                     diff: "easy" },
+      { word: "uborka",       hint: "Zöld hosszú zöldség",               diff: "easy" },
+      { word: "sárgarépa",    hint: "Narancssárga zöldség",              diff: "easy" },
+      { word: "hagyma",       hint: "Könnyeztet vágáskor",               diff: "easy" },
+      { word: "fokhagyma",    hint: "Erős ízű fehér hagyma",             diff: "easy" },
+      { word: "paprika",      hint: "Piros vagy zöld zöldség",           diff: "easy" },
+      { word: "gomba",        hint: "Erdőben nő, kalapja van",           diff: "easy" },
+      // KÖZEPES
+      { word: "csokoládé",    hint: "Édes finomság",                     diff: "medium" },
+      { word: "fagylalt",     hint: "Nyáron hűsítő édesség",             diff: "medium" },
+      { word: "palacsinta",   hint: "Vékony sült tészta",                diff: "medium" },
+      { word: "gulyás",       hint: "Magyar nemzeti étel",               diff: "medium" },
+      { word: "lángos",       hint: "Olajban sült tészta",               diff: "medium" },
+      { word: "lecsó",        hint: "Paprikás paradicsomos étel",        diff: "medium" },
+      { word: "rétes",        hint: "Vékony tésztás sütemény",           diff: "medium" },
+      { word: "halászlé",     hint: "Csípős halas leves",                diff: "medium" },
+      { word: "pörkölt",      hint: "Paprikás húsétel",                  diff: "medium" },
+      { word: "töltöttkáposzta", hint: "Káposztalevélbe töltött étel",   diff: "medium" },
+      { word: "rántotthús",   hint: "Bundában sült hús",                 diff: "medium" },
+      { word: "tejföl",       hint: "Savanyú tejtermék",                 diff: "medium" },
+      { word: "joghurt",      hint: "Fermentált tejtermék",              diff: "medium" },
+      { word: "mozzarella",   hint: "Olasz fehér sajt",                  diff: "medium" },
+      { word: "szalámi",      hint: "Fűszeres kolbász",                  diff: "medium" },
+      { word: "sonka",        hint: "Füstölt sertéshús",                 diff: "medium" },
+      { word: "kolbász",      hint: "Fűszeres húskészítmény",            diff: "medium" },
+      { word: "szendvics",    hint: "Két szelet kenyér között",          diff: "medium" },
+      { word: "hamburger",    hint: "Zsemlébe tett húspogácsa",          diff: "medium" },
+      { word: "sushi",        hint: "Japán rizses étel",                 diff: "medium" },
+      // NEHÉZ
+      { word: "kürtőskalács", hint: "Rúdon sült édes tészta",            diff: "hard" },
+      { word: "dobostorta",   hint: "Magyar karamellás torta",           diff: "hard" },
+      { word: "somlóigaluska",hint: "Magyar desszert piskótával",        diff: "hard" },
+      { word: "boeufstroganoff", hint: "Orosz marhahúsos étel",          diff: "hard" },
+      { word: "tiramisu",     hint: "Olasz kávés desszert",              diff: "hard" },
+      { word: "croissant",    hint: "Francia vajas kifli",               diff: "hard" },
+      { word: "bruschetta",   hint: "Olasz pirított kenyér",             diff: "hard" },
+      { word: "gazpacho",     hint: "Spanyol hideg paradicsomleves",     diff: "hard" },
+    ],
+    foldrajz: [
+      // KÖNNYŰ
+      { word: "tenger",       hint: "Nagy sós vízfelület",               diff: "easy" },
+      { word: "hegy",         hint: "Magas kiemelkedés",                 diff: "easy" },
+      { word: "folyó",        hint: "Áramló víz",                        diff: "easy" },
+      { word: "tó",           hint: "Álló vízfelület",                   diff: "easy" },
+      { word: "erdő",         hint: "Sok fa együtt",                     diff: "easy" },
+      { word: "sivatag",      hint: "Forró, száraz terület",             diff: "easy" },
+      { word: "sziget",       hint: "Víz veszi körül",                   diff: "easy" },
+      { word: "vulkán",       hint: "Tüzet okád a hegyből",              diff: "easy" },
+      { word: "óceán",        hint: "Hatalmas vízfelület",               diff: "easy" },
+      { word: "mező",         hint: "Nyílt füves terület",               diff: "easy" },
+      { word: "domb",         hint: "Kis hegy",                          diff: "easy" },
+      { word: "völgy",        hint: "Hegyek közötti mélyedés",           diff: "easy" },
+      { word: "part",         hint: "Víz és szárazföld találkozása",     diff: "easy" },
+      { word: "mocsár",       hint: "Vizes, ingoványos terület",         diff: "easy" },
+      { word: "barlang",      hint: "Sziklában lévő üreg",               diff: "easy" },
+      { word: "szikla",       hint: "Nagy kőtömb",                       diff: "easy" },
+      { word: "homok",        hint: "Apró szemcsés anyag, tengerparton", diff: "easy" },
+      { word: "jég",          hint: "Fagyott víz",                       diff: "easy" },
+      { word: "hó",           hint: "Fehér téli csapadék",               diff: "easy" },
+      { word: "eső",          hint: "Vízcseppek hullanak az égből",      diff: "easy" },
+      // KÖZEPES
+      { word: "magyarország", hint: "Közép-európai ország",              diff: "medium" },
+      { word: "tengerpart",   hint: "Ahol a tenger a szárazfölddel találkozik", diff: "medium" },
+      { word: "szivárvány",   hint: "Eső után látható",                  diff: "medium" },
+      { word: "gleccser",     hint: "Lassan mozgó jégtömeg",             diff: "medium" },
+      { word: "félsziget",    hint: "Három oldalról víz veszi körül",    diff: "medium" },
+      { word: "vízesés",      hint: "Magasból zuhanó víz",               diff: "medium" },
+      { word: "kontinens",    hint: "Nagy szárazföldi terület",          diff: "medium" },
+      { word: "szavanna",     hint: "Afrikai füves síkság",              diff: "medium" },
+      { word: "tundra",       hint: "Hideg, fátlan terület",             diff: "medium" },
+      { word: "tajga",        hint: "Északi tűlevelű erdő",              diff: "medium" },
+      { word: "dzsungel",     hint: "Sűrű trópusi erdő",                 diff: "medium" },
+      { word: "delta",        hint: "Folyó torkolatánál lévő terület",   diff: "medium" },
+      { word: "lagúna",       hint: "Sekély tengeröböl",                 diff: "medium" },
+      { word: "atoll",        hint: "Korallzátony alkotta sziget",       diff: "medium" },
+      { word: "fjord",        hint: "Mély tengeröböl sziklák között",    diff: "medium" },
+      { word: "szurdok",      hint: "Mély szűk völgy",                   diff: "medium" },
+      { word: "fennsík",      hint: "Magas, lapos terület",              diff: "medium" },
+      { word: "medence",      hint: "Hegyek által körülvett mélyedés",   diff: "medium" },
+      // NEHÉZ
+      { word: "természettudomány", hint: "Fizika, kémia, biológia együtt", diff: "hard" },
+      { word: "szubkontinens",hint: "Kontinens egy nagy része",          diff: "hard" },
+      { word: "meridián",     hint: "Hosszúsági kör",                    diff: "hard" },
+      { word: "szélességi",   hint: "Vízszintes földrajzi koordináta",   diff: "hard" },
+      { word: "tektonikus",   hint: "Kéregmozgáshoz kapcsolódó",         diff: "hard" },
+      { word: "sztalaktit",   hint: "Barlangban lógó mészkőképződmény",  diff: "hard" },
+    ],
+    sport: [
+      // KÖNNYŰ
+      { word: "foci",         hint: "Labdás csapatsport",                diff: "easy" },
+      { word: "úszás",        hint: "Vízben sportolás",                  diff: "easy" },
+      { word: "futás",        hint: "Gyors lábbal haladás",              diff: "easy" },
+      { word: "ugrás",        hint: "Felfelé vagy előre lendülés",       diff: "easy" },
+      { word: "dobás",        hint: "Valamit messzire juttatni",         diff: "easy" },
+      { word: "síelés",       hint: "Havas hegyeken csúszás",            diff: "easy" },
+      { word: "tenisz",       hint: "Ütővel játsszák",                   diff: "easy" },
+      { word: "birkózás",     hint: "Küzdősport",                        diff: "easy" },
+      { word: "kerékpár",     hint: "Két kerekű jármű, sportoláshoz",    diff: "easy" },
+      { word: "lovaglás",     hint: "Lovon ülve sportolás",              diff: "easy" },
+      { word: "golf",         hint: "Lyukba kell ütni a labdát",         diff: "easy" },
+      { word: "boksz",        hint: "Ökölvívás",                         diff: "easy" },
+      { word: "karate",       hint: "Japán harcművészet",                diff: "easy" },
+      { word: "judo",         hint: "Japán küzdősport",                  diff: "easy" },
+      { word: "torna",        hint: "Akrobatikus sportág",               diff: "easy" },
+      { word: "evezés",       hint: "Csónakban lapátolás",               diff: "easy" },
+      { word: "vívás",        hint: "Karddal küzdés",                    diff: "easy" },
+      { word: "íjászat",      hint: "Nyíllal célba lövés",               diff: "easy" },
+      { word: "darts",        hint: "Nyilat dobnak a táblára",           diff: "easy" },
+      { word: "sakk",         hint: "Táblajáték, stratégia kell",        diff: "easy" },
+      // KÖZEPES
+      { word: "labdarúgás",   hint: "Legnépszerűbb sport",               diff: "medium" },
+      { word: "kosárlabda",   hint: "Kosárba kell dobni a labdát",       diff: "medium" },
+      { word: "röplabda",     hint: "Háló felett ütik a labdát",         diff: "medium" },
+      { word: "tollaslabda",  hint: "Tollal díszített labda",            diff: "medium" },
+      { word: "vízilabda",    hint: "Medencében játsszák",               diff: "medium" },
+      { word: "kerékpározás", hint: "Két keréken közlekedés",            diff: "medium" },
+      { word: "kajakozás",    hint: "Evezős vízi sport",                 diff: "medium" },
+      { word: "asztalitenisz",hint: "Kis labdával, asztalon",            diff: "medium" },
+      { word: "kézilabda",    hint: "Kézzel dobják a kapuba",            diff: "medium" },
+      { word: "rögbi",        hint: "Ovális labdás csapatsport",         diff: "medium" },
+      { word: "krikett",      hint: "Angol ütős csapatsport",            diff: "medium" },
+      { word: "baseball",     hint: "Amerikai ütős csapatsport",         diff: "medium" },
+      { word: "jégkorong",    hint: "Jégen játsszák koronggal",          diff: "medium" },
+      { word: "curling",      hint: "Jégen csúsztatják a követ",         diff: "medium" },
+      { word: "bobszán",      hint: "Jégpályán csúszik le",              diff: "medium" },
+      { word: "snowboard",    hint: "Deszkán csúszás havon",             diff: "medium" },
+      { word: "szörfözés",    hint: "Hullámokon deszkán állás",          diff: "medium" },
+      { word: "búvárkodás",   hint: "Víz alatt felfedezés",              diff: "medium" },
+      // NEHÉZ
+      { word: "maratonfutás", hint: "Nagyon hosszú futóverseny",         diff: "hard" },
+      { word: "szinkronúszás",hint: "Zenére úsznak együtt",              diff: "hard" },
+      { word: "ejtőernyőzés", hint: "Repülőből ugrik",                   diff: "hard" },
+      { word: "sziklamászás", hint: "Függőleges felületen mászás",       diff: "hard" },
+      { word: "triatlon",     hint: "Úszás, kerékpár, futás egyben",     diff: "hard" },
+      { word: "pentathlon",   hint: "Öt sportágból álló verseny",        diff: "hard" },
+      { word: "tájfutás",     hint: "Térképpel erdőben futás",           diff: "hard" },
+    ],
+    tudomany: [
+      // KÖNNYŰ
+      { word: "fizika",       hint: "Erők és mozgás tudománya",          diff: "easy" },
+      { word: "kémia",        hint: "Anyagok tudománya",                 diff: "easy" },
+      { word: "biológia",     hint: "Élőlények tudománya",               diff: "easy" },
+      { word: "atom",         hint: "Az anyag legkisebb egysége",        diff: "easy" },
+      { word: "energia",      hint: "Munkavégzés képessége",             diff: "easy" },
+      { word: "fény",         hint: "Láthatóvá tesz mindent",            diff: "easy" },
+      { word: "hang",         hint: "Rezgés, amit hallunk",              diff: "easy" },
+      { word: "hő",           hint: "Meleg érzet",                       diff: "easy" },
+      { word: "erő",          hint: "Mozgást okoz",                      diff: "easy" },
+      { word: "sebesség",     hint: "Megtett út per idő",                diff: "easy" },
+      { word: "tömeg",        hint: "Anyag mennyisége",                  diff: "easy" },
+      { word: "súly",         hint: "Gravitáció hatása a tömegre",       diff: "easy" },
+      { word: "nyomás",       hint: "Erő per terület",                   diff: "easy" },
+      { word: "hőmérséklet",  hint: "Meleg vagy hideg mértéke",          diff: "easy" },
+      { word: "elektromosság",hint: "Töltések áramlása",                 diff: "easy" },
+      { word: "mágnes",       hint: "Vasat vonz",                        diff: "easy" },
+      { word: "mikroszkóp",   hint: "Apró dolgokat nagyít",              diff: "easy" },
+      { word: "teleszkóp",    hint: "Távoli dolgokat közelít",           diff: "easy" },
+      { word: "kísérlet",     hint: "Tudományos próba",                  diff: "easy" },
+      { word: "hipotézis",    hint: "Tudományos feltételezés",           diff: "easy" },
+      // KÖZEPES
+      { word: "matematika",   hint: "Számok és formák tudománya",        diff: "medium" },
+      { word: "informatika",  hint: "Számítástechnika tudománya",        diff: "medium" },
+      { word: "csillagász",   hint: "Az eget figyeli",                   diff: "medium" },
+      { word: "gravitáció",   hint: "Vonzóerő",                         diff: "medium" },
+      { word: "evolúció",     hint: "Fajok fejlődése",                   diff: "medium" },
+      { word: "fotoszintézis",hint: "Növények napfényből táplálkoznak",  diff: "medium" },
+      { word: "sejtmag",      hint: "A sejt irányítóközpontja",          diff: "medium" },
+      { word: "kromoszóma",   hint: "Genetikai információt hordoz",      diff: "medium" },
+      { word: "molekula",     hint: "Atomok kapcsolódása",               diff: "medium" },
+      { word: "reakció",      hint: "Kémiai változás",                   diff: "medium" },
+      { word: "periódus",     hint: "Ismétlődő időszak",                 diff: "medium" },
+      { word: "frekvencia",   hint: "Rezgések száma másodpercenként",    diff: "medium" },
+      { word: "hullámhossz",  hint: "Hullám két csúcsa közötti távolság", diff: "medium" },
+      { word: "spektrum",     hint: "Fény szétbontva",                   diff: "medium" },
+      // NEHÉZ
+      { word: "genetika",     hint: "Az öröklődés tudománya",            diff: "hard" },
+      { word: "neurológia",   hint: "Az idegrendszer tudománya",         diff: "hard" },
+      { word: "pszichológia", hint: "Az emberi lélek tudománya",         diff: "hard" },
+      { word: "meteorológia", hint: "Az időjárás tudománya",             diff: "hard" },
+      { word: "oceanográfia", hint: "A tengerek tudománya",              diff: "hard" },
+      { word: "vulkanológia", hint: "A vulkánok tudománya",              diff: "hard" },
+      { word: "asztrofizika", hint: "Csillagok fizikája",                diff: "hard" },
+      { word: "kozmológia",   hint: "Az univerzum tudománya",            diff: "hard" },
+      { word: "farmakológia", hint: "A gyógyszerek tudománya",           diff: "hard" },
+      { word: "epidemiológia",hint: "Járványok terjedésének tudománya",  diff: "hard" },
+      { word: "nanotechnológia", hint: "Nagyon apró dolgok tudománya",   diff: "hard" },
+      { word: "biotechnológia",  hint: "Élő szervezetek technológiai felhasználása", diff: "hard" },
+      { word: "kvantumfizika",hint: "Szubatomi részecskék fizikája",     diff: "hard" },
+      { word: "termodinamika",hint: "Hő és energia tudománya",           diff: "hard" },
+    ],
+    jarmuvek: [
+      // KÖNNYŰ
+      { word: "autó",         hint: "Négy kerekű jármű",                 diff: "easy" },
+      { word: "vonat",        hint: "Sínen közlekedik",                  diff: "easy" },
+      { word: "hajó",         hint: "Vízen közlekedik",                  diff: "easy" },
+      { word: "motor",        hint: "Két kerekű motoros jármű",          diff: "easy" },
+      { word: "traktor",      hint: "Mezőgazdasági gép",                 diff: "easy" },
+      { word: "bicikli",      hint: "Két kerekű jármű",                  diff: "easy" },
+      { word: "repülő",       hint: "Az égen száll",                     diff: "easy" },
+      { word: "busz",         hint: "Sok utast szállít",                 diff: "easy" },
+      { word: "taxi",         hint: "Fizetős személyszállítás",          diff: "easy" },
+      { word: "kamion",       hint: "Nagy tehergépkocsi",                diff: "easy" },
+      { word: "szán",         hint: "Havon csúszik",                     diff: "easy" },
+      { word: "csónak",       hint: "Kis vízi jármű",                    diff: "easy" },
+      { word: "kenú",         hint: "Evezős kis csónak",                 diff: "easy" },
+      { word: "roller",       hint: "Kis kerekű lábbal hajtott jármű",   diff: "easy" },
+      { word: "robogó",       hint: "Kis motoros kétkerekű",             diff: "easy" },
+      { word: "tank",         hint: "Páncélozott harci jármű",           diff: "easy" },
+      { word: "traktor",      hint: "Mezőgazdasági gép",                 diff: "easy" },
+      { word: "daru",         hint: "Nehéz tárgyakat emel",              diff: "easy" },
+      { word: "mentő",        hint: "Betegeket szállít",                 diff: "easy" },
+      { word: "tűzoltó",      hint: "Tüzet olt",                         diff: "easy" },
+      // KÖZEPES
+      { word: "villamos",     hint: "Sínen közlekedő városi jármű",      diff: "medium" },
+      { word: "metró",        hint: "Föld alatti vasút",                 diff: "medium" },
+      { word: "helikopter",   hint: "Forgószárnyas repülő",              diff: "medium" },
+      { word: "repülőgép",    hint: "Az égen száll",                     diff: "medium" },
+      { word: "bulldózer",    hint: "Épít és rombol",                    diff: "medium" },
+      { word: "vitorlás",     hint: "Szél hajtja a vízen",               diff: "medium" },
+      { word: "komp",         hint: "Autókat is szállít vízen",          diff: "medium" },
+      { word: "jacht",        hint: "Luxus vitorlás",                    diff: "medium" },
+      { word: "mentőcsónak",  hint: "Vészhelyzetben használják",         diff: "medium" },
+      { word: "szélmalom",    hint: "Szél hajtja",                       diff: "medium" },
+      { word: "mozdony",      hint: "Vonatot húz",                       diff: "medium" },
+      { word: "villanyautó",  hint: "Elektromos meghajtású autó",        diff: "medium" },
+      { word: "szuperautó",   hint: "Nagyon gyors sportkocsi",           diff: "medium" },
+      { word: "mentőhelikopter", hint: "Levegőből ment",                 diff: "medium" },
+      // NEHÉZ
+      { word: "tengeralattjáró", hint: "Víz alatt úszik",                diff: "hard" },
+      { word: "légpárnás",    hint: "Levegőpárnán csúszik",              diff: "hard" },
+      { word: "monorail",     hint: "Egysínes vasút",                    diff: "hard" },
+      { word: "katamárán",    hint: "Kétgerincű vitorlás",               diff: "hard" },
+      { word: "légijármű",    hint: "Repülő eszköz általában",           diff: "hard" },
+      { word: "szárnyashajó", hint: "Szárnyain emelkedik ki a vízből",   diff: "hard" },
+    ],
+    zene: [
+      // KÖNNYŰ
+      { word: "gitár",        hint: "Húros hangszer",                    diff: "easy" },
+      { word: "dob",          hint: "Ütős hangszer",                     diff: "easy" },
+      { word: "zongora",      hint: "Billentyűs hangszer",               diff: "easy" },
+      { word: "hegedű",       hint: "Vonós hangszer",                    diff: "easy" },
+      { word: "fuvola",       hint: "Fúvós hangszer",                    diff: "easy" },
+      { word: "trombita",     hint: "Réz fúvós hangszer",                diff: "easy" },
+      { word: "ének",         hint: "Hanggal zenélés",                   diff: "easy" },
+      { word: "dal",          hint: "Zenei alkotás",                     diff: "easy" },
+      { word: "ritmus",       hint: "A zene lüktetése",                  diff: "easy" },
+      { word: "dallam",       hint: "A zene fő vonala",                  diff: "easy" },
+      { word: "hang",         hint: "Zenei alap",                        diff: "easy" },
+      { word: "kórus",        hint: "Együtt énekelnek",                  diff: "easy" },
+      { word: "banda",        hint: "Zenei együttes",                    diff: "easy" },
+      { word: "koncert",      hint: "Élő zenei előadás",                 diff: "easy" },
+      { word: "lemez",        hint: "Zenét tárol",                       diff: "easy" },
+      { word: "mikrofon",     hint: "Hangot erősít",                     diff: "easy" },
+      { word: "hangszóró",    hint: "Hangot ad ki",                      diff: "easy" },
+      { word: "fejhallgató",  hint: "Fülre tesszük zenehallgatáshoz",    diff: "easy" },
+      { word: "rádió",        hint: "Zenét sugároz",                     diff: "easy" },
+      { word: "zene",         hint: "Hangok szervezett sorozata",        diff: "easy" },
+      // KÖZEPES
+      { word: "szaxofon",     hint: "Jazz hangszer",                     diff: "medium" },
+      { word: "szimfónia",    hint: "Zenekari mű",                       diff: "medium" },
+      { word: "opera",        hint: "Énekes zenei műfaj",                diff: "medium" },
+      { word: "harmónia",     hint: "Hangok összhangja",                 diff: "medium" },
+      { word: "karmester",    hint: "A zenekart vezényli",               diff: "medium" },
+      { word: "akkord",       hint: "Egyszerre szóló hangok",            diff: "medium" },
+      { word: "tempo",        hint: "A zene sebessége",                  diff: "medium" },
+      { word: "basszus",      hint: "Mély hang",                         diff: "medium" },
+      { word: "szoprán",      hint: "Magas női hang",                    diff: "medium" },
+      { word: "tenor",        hint: "Magas férfi hang",                  diff: "medium" },
+      { word: "bariton",      hint: "Közepes férfi hang",                diff: "medium" },
+      { word: "klarinét",     hint: "Fafúvós hangszer",                  diff: "medium" },
+      { word: "oboa",         hint: "Kettős nádas fafúvós",              diff: "medium" },
+      { word: "cselló",       hint: "Nagy vonós hangszer",               diff: "medium" },
+      { word: "brácsa",       hint: "Hegedű és cselló között",           diff: "medium" },
+      { word: "hárfa",        hint: "Sok húrja van, pengeti",            diff: "medium" },
+      { word: "orgona",       hint: "Templomban szól",                   diff: "medium" },
+      { word: "szintetizátor",hint: "Elektronikus hangszer",             diff: "medium" },
+      // NEHÉZ
+      { word: "filharmónia",  hint: "Komoly zenei együttes",             diff: "hard" },
+      { word: "kontrapunkt",  hint: "Szólamok egyidejű szövése",        diff: "hard" },
+      { word: "polifónia",    hint: "Több szólam egyszerre",             diff: "hard" },
+      { word: "moduláció",    hint: "Hangnemváltás zenében",             diff: "hard" },
+      { word: "improvizáció", hint: "Rögtönzött zenélés",                diff: "hard" },
+      { word: "szimfonikus",  hint: "Zenekari jellegű",                  diff: "hard" },
+    ],
+    vegyes: []  // dinamikusan töltjük fel
+  };
+
+  // Vegyes = minden kategóriából véletlenszerű mix
+  categoryWords.vegyes = Object.entries(categoryWords)
+    .filter(([k]) => k !== "vegyes")
+    .flatMap(([, v]) => v);
+
+  const categoryInfo = {
+    allatok:  { icon: "🐾", name: "Állatok"   },
+    etelek:   { icon: "🍕", name: "Ételek"    },
+    foldrajz: { icon: "🌍", name: "Földrajz"  },
+    sport:    { icon: "⚽", name: "Sport"     },
+    tudomany: { icon: "🔬", name: "Tudomány"  },
+    jarmuvek: { icon: "🚗", name: "Járművek"  },
+    zene:     { icon: "🎵", name: "Zene"      },
+    vegyes:   { icon: "🎲", name: "Vegyes"    },
+  };
+
+  let currentCategory = "vegyes";
+  let pendingDiff = null;
+
+  function selectDifficulty(diff) {
+    if (!getActivePlayer()) {
+      showNewPlayerForm();
+      document.getElementById("add-player-btn").dataset.pendingDiff = diff;
+      return;
+    }
+    pendingDiff = diff;
+    // Megmutatjuk a kategória választót
+    document.getElementById("menu-screen").style.display = "none";
+    document.getElementById("category-screen").style.display = "flex";
+    document.getElementById("cat-title").textContent =
+      difficultyConfig[diff].label + " — Válassz kategóriát!";
+    // Frissítjük a szám feliratokat
+    Object.keys(categoryWords).forEach(cat => {
+      const pool = getCategoryPool(cat, diff);
+      const el = document.getElementById("cnt-" + cat);
+      if (el) el.textContent = pool.length + " szó";
+    });
+  }
+
+  function backToDifficulty() {
+    document.getElementById("category-screen").style.display = "none";
+    document.getElementById("menu-screen").style.display = "flex";
+  }
+
+  function selectCategory(cat) {
+    currentCategory = cat;
+    const diff = pendingDiff;
+    currentDiff  = diff;
+    currentLevel = 1;
+    usedIndices  = loadUsedIndices(diff + "_" + cat);
+    document.getElementById("category-screen").style.display = "none";
+    document.getElementById("game-screen").style.display = "block";
+
+    const cfg = difficultyConfig[diff];
+    maxMistakes = cfg.maxMistakes;
+    showHint    = cfg.showHint;
+
+    const badge = document.getElementById("diff-badge");
+    badge.textContent = cfg.label;
+    badge.className   = "diff-badge " + cfg.cls;
+
+    const catBadge = document.getElementById("cat-badge");
+    catBadge.textContent = categoryInfo[cat].icon + " " + categoryInfo[cat].name;
+    catBadge.style.display = "inline-block";
+
+    startLevel();
+  }
+
+  function getCategoryPool(cat, diff) {
+    if (cat === "vegyes") {
+      return categoryWords.vegyes.filter(w => w.diff === diff);
+    }
+    return categoryWords[cat].filter(w => w.diff === diff);
+  }
+
+  const difficultyConfig = {
+    easy:   { maxMistakes: 8, showHint: true,  label: "Könnyű",  cls: "easy",   baseCoins: 1 },
+    medium: { maxMistakes: 6, showHint: true,  label: "Közepes", cls: "medium", baseCoins: 2 },
+    hard:   { maxMistakes: 5, showHint: true,  label: "Nehéz",   cls: "hard",   baseCoins: 3 }
+  };
+
+  const bodyParts = [
+    "part-head","part-body",
+    "part-arm-left","part-arm-right",
+    "part-leg-left","part-leg-right"
+  ];
+
+  // Egyszerű betűnkénti tippelés – minden karakter külön
+  const alphabet = [
+    "a","á","b","c","d","e","é","f","g","h","i","í",
+    "j","k","l","m","n","o","ó","ö","ő","p","r","s",
+    "t","u","ú","ü","ű","v","y","z"
+  ];
+
+  let currentDiff  = "medium";
+  let currentLevel = 1;
+  let usedIndices  = [];
+
+  function loadUsedIndices(key) {
+    return JSON.parse(localStorage.getItem("used_" + key) || "[]");
+  }
+
+  function saveUsedIndices(key, arr) {
+    localStorage.setItem("used_" + key, JSON.stringify(arr));
+  }
+
+  function clearUsedIndices(key) {
+    localStorage.removeItem("used_" + key);
+  }
+  let currentWord  = "";
+  let currentHint  = "";
+  let guessed      = new Set();
+  let mistakes     = 0;
+  let maxMistakes  = 6;
+  let showHint     = true;
+  let coins        = 0;
+
+  // ── Bonus system ──
+  // bonusType: null | "timer" | "double"
+  let bonusType    = null;
+  let timerSeconds = 0;
+  let timerInterval = null;
+  const TIMER_DURATION = 60;
+  const BONUS_CHANCE = 0.35; // 35% esély bónuszra szintenként
+
+  function rollBonus() {
+    if (Math.random() > BONUS_CHANCE) return null;
+    return Math.random() < 0.5 ? "timer" : "double";
+  }
+
+  function startTimer() {
+    timerSeconds = TIMER_DURATION;
+    const bar  = document.getElementById("timer-bar");
+    const text = document.getElementById("timer-text");
+    bar.style.width    = "100%";
+    bar.style.background = "#f39c12";
+    text.textContent   = timerSeconds;
+    document.getElementById("timer-wrap").style.display = "flex";
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      const pct = (timerSeconds / TIMER_DURATION) * 100;
+      bar.style.width = pct + "%";
+      text.textContent = timerSeconds;
+      if (timerSeconds <= 15) bar.style.background = "#e74c3c";
+      if (timerSeconds <= 0) {
+        clearInterval(timerInterval);
+        timesUp();
+      }
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    document.getElementById("timer-wrap").style.display = "none";
+  }
+
+  function timesUp() {
+    stopTimer();
+    disableKeyboard();
+    document.getElementById("buy-hint-btn").style.display = "none";
+    const msg = document.getElementById("message");
+    msg.textContent = "Lejárt az idő! A szó: " + currentWord;
+    msg.className = "lose";
+    const tokens = tokenize(currentWord);
+    const boxes  = document.querySelectorAll(".letter-box");
+    tokens.forEach((token, i) => {
+      boxes[i].textContent = token;
+      if (!guessed.has(token)) boxes[i].style.color = "#c0392b";
+    });
+    document.getElementById("retry-btn").style.display = "inline-block";
+    document.getElementById("menu-btn").style.display  = "inline-block";
+  }
+
+  function showBonusBadge(type) {
+    const el = document.getElementById("bonus-badge");
+    el.className = ""; // reset animation
+    void el.offsetWidth;
+    if (type === "timer") {
+      el.textContent = "⏱️ Időre megy! — 60 mp alatt kitalálod?";
+      el.className = "timer";
+    } else if (type === "double") {
+      el.textContent = "🍪🍪 Dupla keksz szint!";
+      el.className = "double";
+    }
+    el.style.display = "flex";
+  }
+
+  function hideBonusBadge() {
+    document.getElementById("bonus-badge").style.display = "none";
+  }
+
+  function updateCoinDisplay() {
+    document.getElementById("coin-count").textContent = coins;
+  }
+
+  function addCoin() {
+    coins++;
+    const p = getActivePlayer();
+    if (p) {
+      p.coins = coins;
+      savePlayer(p);
+    }
+    updateCoinDisplay();
+    const el = document.getElementById("coin-display");
+    el.classList.remove("coin-pop");
+    void el.offsetWidth;
+    el.classList.add("coin-pop");
+  }
+
+  function buyHint() {
+    if (coins < 1) return;
+    const hidden = [...new Set(currentWord.split(""))].filter(ch => !guessed.has(ch));
+    if (hidden.length === 0) return;
+    const pick = hidden[Math.floor(Math.random() * hidden.length)];
+    coins--;
+    const p = getActivePlayer();
+    if (p) { p.coins = coins; savePlayer(p); }
+    updateCoinDisplay();
+    guess(pick);
+    updateBuyHintBtn();
+  }
+
+  function updateBuyHintBtn() {
+    const btn = document.getElementById("buy-hint-btn");
+    const hidden = [...new Set(currentWord.split(""))].filter(ch => !guessed.has(ch));
+    if (hidden.length === 0) {
+      btn.style.display = "none";
+    } else {
+      btn.style.display = "flex";
+      btn.disabled = coins < 1;
+      btn.textContent = "🍪 Betű felfedése (1 érme)";
+    }
+  }
+
+  // ── HANGEFFEKTEK (Web Audio API) ──
+  const audioCtx = window.AudioContext ? new AudioContext() : null;
+
+  function playSound(type) {
+    if (!audioCtx) return;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    if (type === "correct") {
+      o.frequency.setValueAtTime(520, audioCtx.currentTime);
+      o.frequency.setValueAtTime(660, audioCtx.currentTime + 0.1);
+      g.gain.setValueAtTime(0.18, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      o.start(); o.stop(audioCtx.currentTime + 0.3);
+    } else if (type === "wrong") {
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(200, audioCtx.currentTime);
+      o.frequency.setValueAtTime(120, audioCtx.currentTime + 0.15);
+      g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      o.start(); o.stop(audioCtx.currentTime + 0.3);
+    } else if (type === "win") {
+      [523,659,784,1047].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gn  = audioCtx.createGain();
+        osc.connect(gn); gn.connect(audioCtx.destination);
+        osc.frequency.value = freq;
+        gn.gain.setValueAtTime(0.15, audioCtx.currentTime + i*0.12);
+        gn.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i*0.12 + 0.3);
+        osc.start(audioCtx.currentTime + i*0.12);
+        osc.stop(audioCtx.currentTime + i*0.12 + 0.3);
+      });
+    } else if (type === "lose") {
+      [300,250,180].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gn  = audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.connect(gn); gn.connect(audioCtx.destination);
+        osc.frequency.value = freq;
+        gn.gain.setValueAtTime(0.15, audioCtx.currentTime + i*0.18);
+        gn.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i*0.18 + 0.3);
+        osc.start(audioCtx.currentTime + i*0.18);
+        osc.stop(audioCtx.currentTime + i*0.18 + 0.3);
+      });
+    }
+  }
+
+  // ── KONFETTI ──
+  function launchConfetti() {
+    const canvas = document.getElementById("confetti-canvas");
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext("2d");
+    const pieces = Array.from({length: 120}, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height,
+      w: Math.random() * 10 + 6,
+      h: Math.random() * 6 + 4,
+      color: ["#f39c12","#27ae60","#e74c3c","#3498db","#9b59b6","#1abc9c"][Math.floor(Math.random()*6)],
+      rot: Math.random() * 360,
+      vx: (Math.random()-0.5)*3,
+      vy: Math.random()*4+2,
+      vr: (Math.random()-0.5)*6
+    }));
+    let frame = 0;
+    function draw() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      pieces.forEach(p => {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot * Math.PI/180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+        p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      });
+      frame++;
+      if (frame < 120) requestAnimationFrame(draw);
+      else ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+    draw();
+  }
+
+  // ── SOROZAT (STREAK) ──
+  let streak = 0;
+
+  function updateStreakDisplay() {
+    const el  = document.getElementById("streak-display");
+    const cnt = document.getElementById("streak-count");
+    if (streak >= 2) {
+      cnt.textContent = streak;
+      el.style.display = "flex";
+    } else {
+      el.style.display = "none";
+    }
+  }
+
+  // ── CÍM a kekszek alapján ──
+  function getPlayerTitle(c) {
+    if (c >= 100) return { label: "Legenda",  cls: "title-legenda" };
+    if (c >= 50)  return { label: "Bajnok",   cls: "title-bajnok"  };
+    if (c >= 25)  return { label: "Mester",   cls: "title-mester"  };
+    if (c >= 10)  return { label: "Haladó",   cls: "title-haladó"  };
+    return               { label: "Kezdő",    cls: "title-kezdo"   };
+  }
+
+  // ── Navigation ──
+  function goToMenu() {
+    document.getElementById("menu-screen").style.display = "flex";
+    document.getElementById("game-screen").style.display = "none";
+    renderPlayerList();
+    renderLeaderboard();
+    updateActivePlayerBar();
+    updateMenuState();
+  }
+
+  function updateMenuState() {
+    const hasPlayer = !!getActivePlayer();
+    const warn = document.getElementById("no-player-warning");
+    if (warn) warn.style.display = hasPlayer ? "none" : "block";
+    const diffSection = document.getElementById("difficulty-section");
+    if (diffSection) {
+      diffSection.style.opacity      = hasPlayer ? "1" : "0.4";
+      diffSection.style.pointerEvents = hasPlayer ? "auto" : "none";
+    }
+    const label = document.getElementById("diff-label");
+    if (label) {
+      if (hasPlayer) {
+        const p = getActivePlayer();
+        label.textContent = genderEmoji(p.gender) + " " + p.name + ", válassz nehézségi szintet!";
+      } else {
+        label.textContent = "Válassz nehézségi szintet!";
+      }
+    }
+  }
+
+  function nextLevel() {
+    currentLevel++;
+    document.getElementById("level-complete").style.display = "none";
+    document.getElementById("gallows-container").style.display = "block";
+    startLevel();
+  }
+
+  function retryLevel() {
+    // Remove the last used word so it can be re-picked (or just restart same level)
+    startLevel(true);
+  }
+
+  // ── Level start ──
+  function startLevel(retry) {
+    const pool = getCategoryPool(currentCategory, currentDiff);
+    const poolKey = currentDiff + "_" + currentCategory;
+
+    // Ha az összes szó megvolt, töröljük és kezdjük elölről
+    if (usedIndices.length >= pool.length) {
+      usedIndices = [];
+      clearUsedIndices(poolKey);
+    }
+
+    let idx;
+    if (retry && usedIndices.length > 0) {
+      // Újrapróbálás: ugyanaz a szó (utolsó használt szó szövege alapján)
+      const lastWord = usedIndices[usedIndices.length - 1];
+      idx = pool.findIndex(w => w.word === lastWord);
+      if (idx < 0) idx = 0;
+    } else {
+      // Véletlenszerű, még nem használt szó
+      const usedWords = new Set(usedIndices);
+      const available = pool
+        .map((w, i) => ({ w, i }))
+        .filter(({ w }) => !usedWords.has(w.word));
+      if (available.length === 0) {
+        usedIndices = [];
+        clearUsedIndices(poolKey);
+        idx = Math.floor(Math.random() * pool.length);
+      } else {
+        const pick = available[Math.floor(Math.random() * available.length)];
+        idx = pick.i;
+      }
+      usedIndices.push(pool[idx].word);
+      saveUsedIndices(poolKey, usedIndices);
+    }
+
+    currentWord = pool[idx].word.toLowerCase();
+    currentHint = pool[idx].hint;
+    guessed  = new Set();
+    mistakes = 0;
+
+    // Update level badge
+    document.getElementById("level-badge").textContent = currentLevel + ". szint";
+    document.getElementById("max-mistakes-display").textContent = maxMistakes;
+
+    // Reset gallows
+    bodyParts.forEach(id => document.getElementById(id).classList.remove("visible"));
+
+    // Reset UI
+    document.getElementById("mistake-count").textContent = "0";
+    document.getElementById("message").textContent = "";
+    document.getElementById("message").className   = "";
+    document.getElementById("retry-btn").style.display = "none";
+    document.getElementById("menu-btn").style.display  = "none";
+    document.getElementById("guessed-letters").textContent = "";
+    document.getElementById("level-complete").style.display = "none";
+    document.getElementById("gallows-container").style.display = "block";
+
+    const hintEl = document.getElementById("hint");
+    if (showHint && currentHint) {
+      hintEl.textContent = "Tipp: " + currentHint;
+      hintEl.classList.remove("hidden");
+    } else {
+      hintEl.textContent = "";
+      hintEl.classList.add("hidden");
+    }
+
+    renderWord();
+    renderKeyboard();
+    updateBuyHintBtn();
+    // Joker gomb frissítés
+    const jBtn = document.getElementById("joker-btn");
+    if (jBtn) jBtn.style.display = jokerCount > 0 ? "flex" : "none";
+
+    // ── Roll bonus ──
+    if (!retry) {
+      bonusType = rollBonus();
+    }
+    hideBonusBadge();
+    stopTimer();
+    if (bonusType === "timer") {
+      showBonusBadge("timer");
+      startTimer();
+    } else if (bonusType === "double") {
+      showBonusBadge("double");
+    }
+  }
+
+  // Tokenizer: minden karakter külön token (nincs digráf)
+  function tokenize(word) {
+    return word.split("");
+  }
+
+  function renderWord() {
+    const display = document.getElementById("word-display");
+    display.innerHTML = "";
+    for (const token of tokenize(currentWord)) {
+      const box = document.createElement("div");
+      box.classList.add("letter-box");
+      if (guessed.has(token)) box.textContent = token;
+      display.appendChild(box);
+    }
+  }
+
+  function renderKeyboard() {
+    const kb = document.getElementById("keyboard");
+    kb.innerHTML = "";
+    for (const ch of alphabet) {
+      const btn = document.createElement("button");
+      btn.classList.add("key-btn");
+      btn.textContent = ch;
+      btn.dataset.letter = ch;
+      btn.addEventListener("click", () => guess(ch));
+      kb.appendChild(btn);
+    }
+  }
+
+  function wordContains(letter) {
+    return tokenize(currentWord).includes(letter);
+  }
+
+  function guess(letter) {
+    if (guessed.has(letter)) return;
+    // AudioContext feloldása első interakcióra
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    guessed.add(letter);
+    const btn = document.querySelector('.key-btn[data-letter="' + letter + '"]');
+    if (wordContains(letter)) {
+      if (btn) { btn.classList.add("correct"); btn.disabled = true; }
+      playSound("correct");
+      // Villanás effekt
+      const gc = document.getElementById("game-container");
+      gc.classList.remove("correct-flash");
+      void gc.offsetWidth;
+      gc.classList.add("correct-flash");
+      renderWord();
+      checkWin();
+    } else {
+      mistakes++;
+      if (btn) { btn.classList.add("wrong"); btn.disabled = true; }
+      playSound("wrong");
+      document.getElementById("mistake-count").textContent = mistakes;
+      const partEl = document.getElementById(bodyParts[mistakes - 1]);
+      if (partEl) {
+        partEl.classList.add("visible");
+        // Remegés az új testrészen
+        partEl.classList.remove("shake");
+        void partEl.offsetWidth;
+        partEl.classList.add("shake");
+      }
+      // Veszély pulzálás ha közel a vesztés
+      const gc = document.getElementById("gallows-container");
+      if (mistakes >= maxMistakes - 1) {
+        gc.classList.add("danger");
+      }
+      checkLose();
+    }
+    const wrong = [...guessed].filter(l => !wordContains(l));
+    document.getElementById("guessed-letters").textContent =
+      wrong.length ? "Rossz tippek: " + wrong.join(", ") : "";
+    updateBuyHintBtn();
+  }
+
+  function checkWin() {
+    const tokens = tokenize(currentWord);
+    if (!tokens.every(t => guessed.has(t))) return;
+    disableKeyboard();
+    stopTimer();
+    document.getElementById("buy-hint-btn").style.display = "none";
+    document.getElementById("gallows-container").classList.remove("danger");
+    hideBonusBadge();
+
+    // Streak növelés
+    streak++;
+    updateStreakDisplay();
+
+    // Streak bónusz: minden 3. hibátlan szint +1 extra keksz
+    let streakBonus = 0;
+    let streakMsg = "";
+    if (mistakes === 0 && streak % 3 === 0) {
+      streakBonus = 1;
+      streakMsg = " · 🔥 " + streak + " sorozat! +1 🍪";
+    }
+
+    // Keksz számítás
+    const base = difficultyConfig[currentDiff].baseCoins;
+    let earned = base;
+    let bonusMsg = "";
+    if (nextLevelDouble) {
+      earned = base * 2;
+      bonusMsg = " · 🔥 Dupla keksz (kerék bónusz)!";
+      nextLevelDouble = false;
+    } else if (bonusType === "double") {
+      earned = base * 2;
+      bonusMsg = " · 🍪🍪 Dupla keksz!";
+    } else if (bonusType === "timer") {
+      earned = base + 1;
+      bonusMsg = " · ⏱️ Időre teljesítve! +1 extra 🍪";
+    }
+    earned += streakBonus;
+    for (let i = 0; i < earned; i++) addCoin();
+
+    playSound("win");
+    launchConfetti();
+
+    document.getElementById("gallows-container").style.display = "none";
+    document.getElementById("word-display").innerHTML = "";
+    document.getElementById("hint").classList.add("hidden");
+    document.getElementById("mistakes-info").style.visibility = "hidden";
+    document.getElementById("guessed-letters").textContent = "";
+    document.getElementById("keyboard").innerHTML = "";
+    const lc = document.getElementById("level-complete");
+    document.getElementById("lc-title").textContent = currentLevel + ". szint teljesítve!";
+    document.getElementById("lc-sub").textContent   = "A szó: " + currentWord + " — Hibák: " + mistakes + " / " + maxMistakes + " · +" + earned + " 🍪" + bonusMsg + streakMsg;
+
+    // Motivációs üzenet minden 5. hibátlan szintnél
+    const motivEl = document.getElementById("lc-motivation");
+    const playerName = getActivePlayer() ? getActivePlayer().name : null;
+    if (mistakes === 0 && streak > 0 && streak % 5 === 0 && playerName) {
+      const msgs = [
+        "🔥 {név}, szenzációs vagy! " + streak + " szint hibátlanul!",
+        "⭐ {név}, így tovább! Megállíthatatlan vagy!",
+        "🚀 {név}, fantasztikus sorozat! " + streak + " hibátlan szint!",
+        "💪 {név}, profi vagy! Semmi sem állít meg!",
+        "🏆 {név}, bajnoki forma! " + streak + " szint, egy hiba sem!",
+        "🎯 {név}, tökéletes! Így kell ezt csinálni!",
+        "✨ {név}, lenyűgöző! " + streak + " szint, nulla hiba!",
+      ];
+      const msg = msgs[Math.floor(Math.random() * msgs.length)].replace(/{név}/g, playerName);
+      motivEl.textContent = msg;
+      motivEl.style.display = "block";
+    } else if (streak > 0 && streak % 5 === 0 && playerName) {
+      // 5. szint, de volt hiba
+      const msgs2 = [
+        "👏 {név}, már " + streak + " szint egyhuzamban! Szép munka!",
+        "💫 {név}, " + streak + " szint és még mindig megy! Hajrá!",
+        "🎉 {név}, " + streak + " szint sorozat! Egyre jobb vagy!",
+      ];
+      const msg2 = msgs2[Math.floor(Math.random() * msgs2.length)].replace(/{név}/g, playerName);
+      motivEl.textContent = msg2;
+      motivEl.style.display = "block";
+    } else {
+      motivEl.style.display = "none";
+    }
+
+    lc.style.display = "flex";
+    document.getElementById("mistakes-info").style.visibility = "";
+
+    // Szerencsekerék minden 10. szintnél — kis késleltetéssel
+    if (currentLevel % 10 === 0) {
+      setTimeout(() => openWheel(), 1800);
+    }
+  }
+
+  function checkLose() {
+    if (mistakes < maxMistakes) return;
+    stopTimer();
+    hideBonusBadge();
+    // Streak megszakad
+    streak = 0;
+    updateStreakDisplay();
+    playSound("lose");
+    document.getElementById("gallows-container").classList.remove("danger");
+    const msg = document.getElementById("message");
+    msg.textContent = "Vesztettél! A szó: " + currentWord;
+    msg.className = "lose";
+    const tokens = tokenize(currentWord);
+    const boxes  = document.querySelectorAll(".letter-box");
+    tokens.forEach((token, i) => {
+      boxes[i].textContent = token;
+      if (!guessed.has(token)) boxes[i].style.color = "#c0392b";
+    });
+    disableKeyboard();
+    document.getElementById("buy-hint-btn").style.display = "none";
+    document.getElementById("retry-btn").style.display = "inline-block";
+    document.getElementById("menu-btn").style.display  = "inline-block";
+  }
+
+  function disableKeyboard() {
+    document.querySelectorAll(".key-btn").forEach(btn => btn.disabled = true);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (document.getElementById("pin-modal").style.display === "flex" && e.key === "Enter") {
+      confirmPin(); return;
+    }
+    const letter = e.key.toLowerCase();
+    if (alphabet.includes(letter)) guess(letter);
+  });
+
+  goToMenu();
+
+  // ── SZERENCSEKERÉK ──
+  const wheelSegments = [
+    { label: "+3 🍪",   color: "#27ae60", action: "coins",  value: 3  },
+    { label: "+5 🍪",   color: "#f39c12", action: "coins",  value: 5  },
+    { label: "+1 🍪",   color: "#3498db", action: "coins",  value: 1  },
+    { label: "💣 -1",   color: "#e74c3c", action: "lose",   value: 1  },
+    { label: "🃏 Joker",color: "#9b59b6", action: "joker",  value: 3  },
+    { label: "🔥 Dupla",color: "#e67e22", action: "double", value: 0  },
+    { label: "+10 🍪",  color: "#1abc9c", action: "coins",  value: 10 },
+    { label: "💣 -2",   color: "#c0392b", action: "lose",   value: 2  },
+  ];
+
+  let wheelSpinning = false;
+  let wheelAngle    = 0;
+  let jokerCount    = 0;
+  let nextLevelDouble = false;
+
+  function drawWheel(angle) {
+    const canvas = document.getElementById("wheel-canvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const cx = 130, cy = 130, r = 120;
+    const n = wheelSegments.length;
+    const arc = (2 * Math.PI) / n;
+    ctx.clearRect(0, 0, 260, 260);
+    wheelSegments.forEach((seg, i) => {
+      const start = angle + i * arc - Math.PI / 2;
+      const end   = start + arc;
+      // Szelet
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, end);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // Szöveg
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(start + arc / 2);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 13px Segoe UI";
+      ctx.shadowColor = "rgba(0,0,0,0.4)";
+      ctx.shadowBlur = 3;
+      ctx.fillText(seg.label, r - 8, 5);
+      ctx.restore();
+    });
+    // Középső kör
+    ctx.beginPath();
+    ctx.arc(cx, cy, 18, 0, 2 * Math.PI);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.strokeStyle = "#ddd";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function openWheel() {
+    wheelAngle = 0;
+    wheelSpinning = false;
+    drawWheel(0);
+    document.getElementById("wheel-result").style.display = "none";
+    document.getElementById("wheel-close-btn").style.display = "none";
+    document.getElementById("spin-btn").style.display = "inline-block";
+    document.getElementById("spin-btn").disabled = false;
+    document.getElementById("wheel-modal").style.display = "flex";
+  }
+
+  function spinWheel() {
+    if (wheelSpinning) return;
+    wheelSpinning = true;
+    document.getElementById("spin-btn").disabled = true;
+    playSound("win");
+
+    // Véletlenszerű szelet kiválasztása
+    const targetIdx = Math.floor(Math.random() * wheelSegments.length);
+    const n = wheelSegments.length;
+    const arc = (2 * Math.PI) / n;
+    // Forgás: 5-8 teljes kör + a célszelet közepére
+    const extraSpins = (5 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
+    const targetAngle = extraSpins - (targetIdx * arc);
+    const duration = 4000;
+    const start = performance.now();
+    const startAngle = wheelAngle;
+
+    function animate(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Easing: lassul a végén
+      const ease = 1 - Math.pow(1 - progress, 4);
+      wheelAngle = startAngle + targetAngle * ease;
+      drawWheel(wheelAngle);
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        wheelSpinning = false;
+        showWheelResult(targetIdx);
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+
+  function showWheelResult(idx) {
+    const seg = wheelSegments[idx];
+    let msg = "";
+    if (seg.action === "coins") {
+      for (let i = 0; i < seg.value; i++) addCoin();
+      msg = "🎉 Nyertél " + seg.value + " 🍪 kekszet!";
+    } else if (seg.action === "lose") {
+      coins = Math.max(0, coins - seg.value);
+      const p = getActivePlayer();
+      if (p) { p.coins = coins; savePlayer(p); }
+      updateCoinDisplay();
+      msg = "💣 Pech! Elvesztettél " + seg.value + " 🍪 kekszet!";
+    } else if (seg.action === "joker") {
+      jokerCount += seg.value;
+      updateJokerDisplay();
+      msg = "🃏 Kaptál " + seg.value + " Joker kártyát! (3 betűt fed fel)";
+    } else if (seg.action === "double") {
+      nextLevelDouble = true;
+      msg = "🔥 A következő szinten dupla kekszet kapsz!";
+    }
+    const resultEl = document.getElementById("wheel-result");
+    resultEl.textContent = msg;
+    resultEl.style.display = "block";
+    document.getElementById("wheel-close-btn").style.display = "inline-block";
+    document.getElementById("spin-btn").style.display = "none";
+    playSound("correct");
+  }
+
+  function closeWheel() {
+    document.getElementById("wheel-modal").style.display = "none";
+  }
+
+  function updateJokerDisplay() {
+    const el = document.getElementById("joker-display");
+    if (!el) return;
+    if (jokerCount > 0) {
+      el.style.display = "flex";
+      document.getElementById("joker-count").textContent = jokerCount;
+    } else {
+      el.style.display = "none";
+    }
+  }
+
+  function useJoker() {
+    if (jokerCount < 1) return;
+    const hidden = [...new Set(currentWord.split(""))].filter(ch => !guessed.has(ch));
+    if (hidden.length === 0) return;
+    jokerCount--;
+    updateJokerDisplay();
+    // Felfed 3 véletlenszerű betűt
+    const toReveal = hidden.sort(() => Math.random() - 0.5).slice(0, 3);
+    toReveal.forEach(ch => guess(ch));
+  }
+
+  // ── Theme toggle ──
+  let darkMode = false;
+  function toggleTheme() {
+    darkMode = !darkMode;
+    document.body.classList.toggle("dark", darkMode);
+    document.getElementById("theme-toggle").textContent = darkMode ? "☀️" : "🌙";
+  }
+</script>
+</body>
+</html>
