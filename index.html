@@ -785,9 +785,12 @@
       const row = document.createElement("div");
       row.className = "player-row" + (p.id === activePlayerId ? " active" : "");
       const title = getPlayerTitle(p.coins);
+      const onlineDot = onlineUsers.has(p.id)
+        ? '<span style="display:inline-block;width:8px;height:8px;background:#27ae60;border-radius:50%;margin-right:4px;vertical-align:middle;" title="Online"></span>'
+        : '';
       row.innerHTML =
         '<span class="player-emoji">' + genderEmoji(p.gender) + '</span>' +
-        '<span class="player-name">'  + p.name + '<span class="player-title ' + title.cls + '">' + title.label + '</span></span>' +
+        '<span class="player-name">' + onlineDot + p.name + '<span class="player-title ' + title.cls + '">' + title.label + '</span></span>' +
         '<span class="player-coins">🍪 ' + p.coins + '</span>' +
         '<button class="stats-btn" onclick="openStats(\'' + p.id + '\', event)" title="Statisztikák">📊</button>' +
         '<button class="player-delete" onclick="deletePlayer(\'' + p.id + '\', event)" title="Törlés">✕</button>';
@@ -810,10 +813,13 @@
       const row = document.createElement("div");
       row.className = "player-row" + (p.id === activePlayerId ? " active" : "");
       row.style.cursor = "default";
+      const onlineDot = onlineUsers.has(p.id)
+        ? '<span style="display:inline-block;width:8px;height:8px;background:#27ae60;border-radius:50%;margin-right:4px;vertical-align:middle;" title="Online"></span>'
+        : '';
       row.innerHTML =
         '<span class="player-emoji">' + (medals[i] || "🏅") + '</span>' +
         '<span class="player-emoji">' + genderEmoji(p.gender) + '</span>' +
-        '<span class="player-name">'  + p.name + '</span>' +
+        '<span class="player-name">' + onlineDot + p.name + '</span>' +
         '<span class="player-coins">🍪 ' + p.coins + '</span>';
       lb.appendChild(row);
     });
@@ -1656,6 +1662,10 @@
     catBadge.textContent = categoryInfo[cat].icon + " " + categoryInfo[cat].name;
     catBadge.style.display = "inline-block";
 
+    // Online státusz beállítása
+    const p = getActivePlayer();
+    if (p) setOnline(p.id, true);
+
     startLevel();
   }
 
@@ -1688,6 +1698,7 @@
   let currentDiff  = "medium";
   let currentLevel = 1;
   let usedIndices  = [];
+  let levelStartTime = 0;
 
   function loadUsedIndices(key) {
     return JSON.parse(localStorage.getItem("used_" + key) || "[]");
@@ -1935,7 +1946,36 @@
   }
 
   // ── Navigation ──
+
+  // ── ONLINE JELENLÉT ──
+  function setOnline(playerId, isOnline) {
+    if (!firebaseOk || !playerId) return;
+    if (isOnline) {
+      db.ref("online/" + playerId).set({
+        since: Date.now()
+      });
+      // Automatikus törlés ha bezárja az oldalt
+      db.ref("online/" + playerId).onDisconnect().remove();
+    } else {
+      db.ref("online/" + playerId).remove();
+    }
+  }
+
+  // Online státusz figyelése — valós idejű frissítés
+  let onlineUsers = new Set();
+  if (firebaseOk) {
+    db.ref("online").on("value", snapshot => {
+      const data = snapshot.val() || {};
+      onlineUsers = new Set(Object.keys(data));
+      renderPlayerList();
+      renderLeaderboard();
+    });
+  }
+
   function goToMenu() {
+    // Offline státusz beállítása
+    const p = getActivePlayer();
+    if (p) setOnline(p.id, false);
     document.getElementById("menu-screen").style.display = "flex";
     document.getElementById("game-screen").style.display = "none";
     renderPlayerList();
@@ -2048,6 +2088,8 @@
     // Joker gomb frissítés
     const jBtn = document.getElementById("joker-btn");
     if (jBtn) jBtn.style.display = jokerCount > 0 ? "flex" : "none";
+    // Játékidő mérés kezdete
+    levelStartTime = Date.now();
 
     // ── Roll bonus ──
     if (!retry) {
@@ -2477,6 +2519,9 @@
     s.timerWins     = (s.timerWins     || 0) + (timerWin ? 1 : 0);
     s.totalMistakes = (s.totalMistakes || 0) + mistakes;
     s.bestStreak    = Math.max(s.bestStreak || 0, streak);
+    // Játékidő hozzáadása (másodpercben)
+    const elapsed = levelStartTime > 0 ? Math.round((Date.now() - levelStartTime) / 1000) : 0;
+    s.totalPlayTime = (s.totalPlayTime || 0) + elapsed;
     if (!s.categories) s.categories = {};
     s.categories[category] = (s.categories[category] || 0) + (won ? 1 : 0);
     saveStats(p.id, s);
@@ -2490,6 +2535,17 @@
       ? Math.round((s.totalWon / s.totalPlayed) * 100) : 0;
     const avgMistakes = s.totalPlayed > 0
       ? (s.totalMistakes / s.totalPlayed).toFixed(1) : "–";
+
+    // Játékidő formázása
+    const totalSec = s.totalPlayTime || 0;
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const sec = totalSec % 60;
+    const timeStr = h > 0
+      ? h + "ó " + m + "p"
+      : m > 0 ? m + " perc " + sec + " mp"
+      : sec + " mp";
+
     grid.innerHTML = [
       { icon: "🎮", value: s.totalPlayed   || 0, label: "Összes szint",      cls: "" },
       { icon: "✅", value: s.totalWon      || 0, label: "Megoldott szó",     cls: "" },
@@ -2499,6 +2555,7 @@
       { icon: "⏱️", value: s.timerWins     || 0, label: "Időre teljesítve",  cls: "" },
       { icon: "💀", value: s.totalMistakes || 0, label: "Összes hiba",       cls: "" },
       { icon: "📈", value: avgMistakes,           label: "Átlag hiba/szint", cls: "" },
+      { icon: "🕐", value: timeStr,               label: "Összes játékidő",  cls: "highlight" },
     ].map(item =>
       '<div class="stat-card ' + item.cls + '">' +
         '<div class="stat-icon">'  + item.icon  + '</div>' +
