@@ -2803,7 +2803,7 @@
     if (!s.categories) s.categories = {};
     s.categories[category] = (s.categories[category] || 0) + (won ? 1 : 0);
     saveStats(p.id, s);
-    checkBadges(s, p);
+    checkBadges(s, p, true); // true = játékból jön
   }
 
   function renderStatsData(p, s) {
@@ -2895,8 +2895,8 @@
             (localStats.categories || {})[cat] || 0
           );
         });
-        // Mentjük vissza a mergelt adatot
-        saveStats(playerId, merged);
+        // Csak lokálisan mentjük (ne triggerálja a Firebase listenert)
+        localStorage.setItem("stats_" + playerId, JSON.stringify(merged));
         renderStatsData(p, merged);
       }).catch(() => renderStatsData(p, getStats(playerId)));
     } else {
@@ -2932,7 +2932,8 @@
     { id: "playtime5h",  icon: "🕰️", name: "Megszállott",     desc: "5 óra játékidő",                         check: (s,p) => (s.totalPlayTime||0) >= 18000, progress: (s,p) => ({ cur: Math.min(Math.floor((s.totalPlayTime||0)/60), 300), max: 300, unit: "perc" }) },
   ];
 
-  function checkBadges(stats, player) {
+  function checkBadges(stats, player, fromGame) {
+    if (!fromGame) return stats; // csak játékból hívható
     const earned = new Set(stats.badges || []);
     const newOnes = [];
     allBadges.forEach(b => {
