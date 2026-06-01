@@ -380,6 +380,36 @@
     .badge-icon  { font-size: 1.5rem; line-height: 1; }
     .badge-name  { font-size: 0.65rem; font-weight: bold; color: var(--text); }
     .badge-desc  { font-size: 0.6rem; color: var(--muted); }
+
+    /* Badge tooltip popup */
+    #badge-popup {
+      display: none; position: fixed; z-index: 1001;
+      background: var(--card-bg); border: 2px solid #f39c12;
+      border-radius: 14px; padding: 14px 16px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+      min-width: 200px; max-width: 260px;
+      flex-direction: column; gap: 8px;
+    }
+    #badge-popup .bp-header { display: flex; align-items: center; gap: 8px; }
+    #badge-popup .bp-icon   { font-size: 2rem; line-height: 1; }
+    #badge-popup .bp-name   { font-size: 1rem; font-weight: bold; color: var(--text); }
+    #badge-popup .bp-desc   { font-size: 0.85rem; color: var(--muted); }
+    #badge-popup .bp-progress-label {
+      font-size: 0.8rem; color: var(--muted); display: flex;
+      justify-content: space-between;
+    }
+    #badge-popup .bp-bar-bg {
+      height: 10px; background: var(--card-border);
+      border-radius: 6px; overflow: hidden;
+    }
+    #badge-popup .bp-bar {
+      height: 100%; border-radius: 6px;
+      background: linear-gradient(90deg, #f39c12, #27ae60);
+      transition: width 0.4s ease;
+    }
+    #badge-popup .bp-earned {
+      font-size: 0.85rem; color: #27ae60; font-weight: bold; text-align: center;
+    }
     /* Jelvény szerzés animáció */
     #badge-toast {
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -623,6 +653,19 @@
 <button id="theme-toggle" onclick="toggleTheme()" title="Téma váltás">🌙</button>
 <canvas id="confetti-canvas"></canvas>
 <div id="badge-toast"></div>
+<div id="badge-popup">
+  <div class="bp-header">
+    <span class="bp-icon" id="bp-icon"></span>
+    <span class="bp-name" id="bp-name"></span>
+  </div>
+  <div class="bp-desc" id="bp-desc"></div>
+  <div class="bp-progress-label">
+    <span id="bp-progress-text"></span>
+    <span id="bp-progress-pct"></span>
+  </div>
+  <div class="bp-bar-bg"><div class="bp-bar" id="bp-bar"></div></div>
+  <div class="bp-earned" id="bp-earned" style="display:none">✅ Megszereztél!</div>
+</div>
 <div id="chat-notif" style="display:none; position:fixed; bottom:20px; right:16px; background:var(--card-bg); border:1.5px solid #27ae60; border-radius:14px; padding:10px 36px 10px 16px; box-shadow:0 4px 20px rgba(0,0,0,0.2); z-index:1000; max-width:280px; flex-direction:column; gap:4px;">
   <button class="notif-close" onclick="closeChatNotif()" style="position:absolute;top:6px;right:10px;background:none;border:none;cursor:pointer;font-size:0.9rem;color:#888;">✕</button>
   <div class="notif-header" style="font-size:0.75rem;font-weight:bold;color:#27ae60;">💬 Új üzenet a chatben</div>
@@ -2798,7 +2841,7 @@
       ).join("");
     }
     document.getElementById("stats-modal").style.display = "flex";
-    renderBadgeGrid(s);
+    renderBadgeGrid(s, p);
   }
 
   function openStats(playerId, e) {
@@ -2846,33 +2889,26 @@
 
   // ── JELVÉNYEK ──
   const allBadges = [
-    // KEZDŐ
-    { id: "first_win",   icon: "🌟", name: "Első lépés",    desc: "Első megoldott szó",                    check: (s,p) => s.totalWon >= 1 },
-    { id: "win10",       icon: "🎯", name: "Tízes",         desc: "10 szó megoldva",                       check: (s,p) => s.totalWon >= 10 },
-    { id: "win50",       icon: "🏆", name: "Bajnok",        desc: "50 szó megoldva",                       check: (s,p) => s.totalWon >= 50 },
-    { id: "win100",      icon: "👑", name: "Legenda",       desc: "100 szó megoldva",                      check: (s,p) => s.totalWon >= 100 },
-    { id: "win250",      icon: "💎", name: "Mester",        desc: "250 szó megoldva",                      check: (s,p) => s.totalWon >= 250 },
-    // HIBÁTLAN
-    { id: "perfect1",    icon: "✨", name: "Hibátlan",      desc: "5 hibátlan szint",                      check: (s,p) => s.perfectWins >= 5 },
-    { id: "perfect10",   icon: "🎖️", name: "Mesterlövész",  desc: "20 hibátlan szint",                     check: (s,p) => s.perfectWins >= 20 },
-    { id: "perfect50",   icon: "🔮", name: "Tökéletes",     desc: "50 hibátlan szint",                     check: (s,p) => s.perfectWins >= 50 },
-    // SOROZAT
-    { id: "streak5",     icon: "🔥", name: "Sorozat",       desc: "5 szint egyhuzamban",                   check: (s,p) => s.bestStreak >= 5 },
-    { id: "streak10",    icon: "⚡", name: "Villám",        desc: "10 szint egyhuzamban",                  check: (s,p) => s.bestStreak >= 10 },
-    { id: "streak25",    icon: "🌪️", name: "Tornádó",       desc: "25 szint egyhuzamban",                  check: (s,p) => s.bestStreak >= 25 },
-    // IDŐRE
-    { id: "timer5",      icon: "⏱️", name: "Gyors ujjak",   desc: "20 időre teljesített szint",            check: (s,p) => s.timerWins >= 20 },
-    { id: "timer20",     icon: "🚀", name: "Rakéta",        desc: "50 időre teljesített szint",            check: (s,p) => s.timerWins >= 50 },
-    // KEKSZ
-    { id: "coins50",     icon: "🍪", name: "Kekszgyűjtő",   desc: "50 keksz összegyűjtve",                 check: (s,p) => (p.coins||0) >= 50 },
-    { id: "coins200",    icon: "🎂", name: "Kekszkirály",   desc: "200 keksz összegyűjtve",                check: (s,p) => (p.coins||0) >= 200 },
-    { id: "coins500",    icon: "🏅", name: "Kekszbáró",     desc: "500 keksz összegyűjtve",                check: (s,p) => (p.coins||0) >= 500 },
-    // KATEGÓRIA
-    { id: "allcats",     icon: "🌈", name: "Felfedező",     desc: "Minden kategóriában legalább 5 győzelem",check: (s,p) => Object.values(s.categories||{}).filter(v=>v>=5).length >= 7 },
-    { id: "catmaster",   icon: "🗺️", name: "Kategóriamester",desc: "Minden kategóriában legalább 20 győzelem",check: (s,p) => Object.values(s.categories||{}).filter(v=>v>=20).length >= 7 },
-    // JÁTÉKIDŐ
-    { id: "playtime1h",  icon: "🕐", name: "Elkötelezett",  desc: "1 óra játékidő",                        check: (s,p) => (s.totalPlayTime||0) >= 3600 },
-    { id: "playtime5h",  icon: "🕰️", name: "Megszállott",   desc: "5 óra játékidő",                        check: (s,p) => (s.totalPlayTime||0) >= 18000 },
+    { id: "first_win",   icon: "🌟", name: "Első lépés",      desc: "Első megoldott szó",                     check: (s,p) => s.totalWon >= 1,   progress: (s,p) => ({ cur: Math.min(s.totalWon||0, 1),   max: 1   }) },
+    { id: "win10",       icon: "🎯", name: "Tízes",           desc: "10 szó megoldva",                        check: (s,p) => s.totalWon >= 10,  progress: (s,p) => ({ cur: Math.min(s.totalWon||0, 10),  max: 10  }) },
+    { id: "win50",       icon: "🏆", name: "Bajnok",          desc: "50 szó megoldva",                        check: (s,p) => s.totalWon >= 50,  progress: (s,p) => ({ cur: Math.min(s.totalWon||0, 50),  max: 50  }) },
+    { id: "win100",      icon: "👑", name: "Legenda",         desc: "100 szó megoldva",                       check: (s,p) => s.totalWon >= 100, progress: (s,p) => ({ cur: Math.min(s.totalWon||0, 100), max: 100 }) },
+    { id: "win250",      icon: "💎", name: "Mester",          desc: "250 szó megoldva",                       check: (s,p) => s.totalWon >= 250, progress: (s,p) => ({ cur: Math.min(s.totalWon||0, 250), max: 250 }) },
+    { id: "perfect1",    icon: "✨", name: "Hibátlan",        desc: "5 hibátlan szint",                       check: (s,p) => s.perfectWins >= 5,  progress: (s,p) => ({ cur: Math.min(s.perfectWins||0, 5),  max: 5  }) },
+    { id: "perfect10",   icon: "🎖️", name: "Mesterlövész",    desc: "20 hibátlan szint",                      check: (s,p) => s.perfectWins >= 20, progress: (s,p) => ({ cur: Math.min(s.perfectWins||0, 20), max: 20 }) },
+    { id: "perfect50",   icon: "🔮", name: "Tökéletes",       desc: "50 hibátlan szint",                      check: (s,p) => s.perfectWins >= 50, progress: (s,p) => ({ cur: Math.min(s.perfectWins||0, 50), max: 50 }) },
+    { id: "streak5",     icon: "🔥", name: "Sorozat",         desc: "5 szint egyhuzamban",                    check: (s,p) => s.bestStreak >= 5,  progress: (s,p) => ({ cur: Math.min(s.bestStreak||0, 5),  max: 5  }) },
+    { id: "streak10",    icon: "⚡", name: "Villám",          desc: "10 szint egyhuzamban",                   check: (s,p) => s.bestStreak >= 10, progress: (s,p) => ({ cur: Math.min(s.bestStreak||0, 10), max: 10 }) },
+    { id: "streak25",    icon: "🌪️", name: "Tornádó",         desc: "25 szint egyhuzamban",                   check: (s,p) => s.bestStreak >= 25, progress: (s,p) => ({ cur: Math.min(s.bestStreak||0, 25), max: 25 }) },
+    { id: "timer5",      icon: "⏱️", name: "Gyors ujjak",     desc: "20 időre teljesített szint",             check: (s,p) => s.timerWins >= 20, progress: (s,p) => ({ cur: Math.min(s.timerWins||0, 20), max: 20 }) },
+    { id: "timer20",     icon: "🚀", name: "Rakéta",          desc: "50 időre teljesített szint",             check: (s,p) => s.timerWins >= 50, progress: (s,p) => ({ cur: Math.min(s.timerWins||0, 50), max: 50 }) },
+    { id: "coins50",     icon: "🍪", name: "Kekszgyűjtő",     desc: "50 keksz összegyűjtve",                  check: (s,p) => (p.coins||0) >= 50,  progress: (s,p) => ({ cur: Math.min(p.coins||0, 50),  max: 50  }) },
+    { id: "coins200",    icon: "🎂", name: "Kekszkirály",     desc: "200 keksz összegyűjtve",                 check: (s,p) => (p.coins||0) >= 200, progress: (s,p) => ({ cur: Math.min(p.coins||0, 200), max: 200 }) },
+    { id: "coins500",    icon: "🏅", name: "Kekszbáró",       desc: "500 keksz összegyűjtve",                 check: (s,p) => (p.coins||0) >= 500, progress: (s,p) => ({ cur: Math.min(p.coins||0, 500), max: 500 }) },
+    { id: "allcats",     icon: "🌈", name: "Felfedező",       desc: "Minden kategóriában legalább 5 győzelem", check: (s,p) => Object.values(s.categories||{}).filter(v=>v>=5).length >= 7,  progress: (s,p) => ({ cur: Object.values(s.categories||{}).filter(v=>v>=5).length,  max: 7 }) },
+    { id: "catmaster",   icon: "🗺️", name: "Kategóriamester", desc: "Minden kategóriában legalább 20 győzelem",check: (s,p) => Object.values(s.categories||{}).filter(v=>v>=20).length >= 7, progress: (s,p) => ({ cur: Object.values(s.categories||{}).filter(v=>v>=20).length, max: 7 }) },
+    { id: "playtime1h",  icon: "🕐", name: "Elkötelezett",    desc: "1 óra játékidő",                         check: (s,p) => (s.totalPlayTime||0) >= 3600,  progress: (s,p) => ({ cur: Math.min(Math.floor((s.totalPlayTime||0)/60), 60),  max: 60,  unit: "perc" }) },
+    { id: "playtime5h",  icon: "🕰️", name: "Megszállott",     desc: "5 óra játékidő",                         check: (s,p) => (s.totalPlayTime||0) >= 18000, progress: (s,p) => ({ cur: Math.min(Math.floor((s.totalPlayTime||0)/60), 300), max: 300, unit: "perc" }) },
   ];
 
   function checkBadges(stats, player) {
@@ -2902,18 +2938,65 @@
     setTimeout(() => el.classList.remove("show"), 3500);
   }
 
-  function renderBadgeGrid(stats) {
+  function renderBadgeGrid(stats, player) {
     const grid = document.getElementById("stats-badge-grid");
     if (!grid) return;
     const earned = new Set(stats.badges || []);
-    grid.innerHTML = allBadges.map(b => {
+    grid.innerHTML = "";
+    allBadges.forEach(b => {
       const has = earned.has(b.id);
-      return '<div class="badge-item ' + (has ? "earned" : "locked") + '" title="' + b.desc + '">' +
+      const div = document.createElement("div");
+      div.className = "badge-item " + (has ? "earned" : "locked");
+      div.innerHTML =
         '<div class="badge-icon">' + b.icon + '</div>' +
-        '<div class="badge-name">' + b.name + '</div>' +
-        '</div>';
-    }).join("");
+        '<div class="badge-name">' + b.name + '</div>';
+      div.style.cursor = "pointer";
+      div.addEventListener("click", (e) => showBadgePopup(b, stats, player || {}, e));
+      grid.appendChild(div);
+    });
   }
+
+  let popupCloseTimer = null;
+
+  function showBadgePopup(badge, stats, player, e) {
+    e.stopPropagation();
+    const popup = document.getElementById("badge-popup");
+    const earned = new Set(stats.badges || []);
+    const isEarned = earned.has(badge.id);
+    const prog = badge.progress(stats, player);
+    const pct = Math.round((prog.cur / prog.max) * 100);
+    const unit = prog.unit || "db";
+
+    document.getElementById("bp-icon").textContent  = badge.icon;
+    document.getElementById("bp-name").textContent  = badge.name;
+    document.getElementById("bp-desc").textContent  = badge.desc;
+    document.getElementById("bp-progress-text").textContent =
+      prog.cur + " / " + prog.max + " " + unit;
+    document.getElementById("bp-progress-pct").textContent = pct + "%";
+    document.getElementById("bp-bar").style.width   = pct + "%";
+    const earnedEl = document.getElementById("bp-earned");
+    earnedEl.style.display = isEarned ? "block" : "none";
+
+    // Pozicionálás a kattintott elem közelé
+    const rect = e.currentTarget.getBoundingClientRect();
+    popup.style.display = "flex";
+    const pw = 260;
+    let left = rect.left + rect.width / 2 - pw / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+    let top = rect.top - 10;
+    if (top + 180 > window.innerHeight) top = rect.top - 180;
+    popup.style.left = left + "px";
+    popup.style.top  = (top - 10) + "px";
+
+    if (popupCloseTimer) clearTimeout(popupCloseTimer);
+    popupCloseTimer = setTimeout(hideBadgePopup, 4000);
+  }
+
+  function hideBadgePopup() {
+    document.getElementById("badge-popup").style.display = "none";
+  }
+
+  document.addEventListener("click", () => hideBadgePopup());
 
   // ── CHAT ÉRTESÍTÉS ──
   let lastChatTs = Date.now();
