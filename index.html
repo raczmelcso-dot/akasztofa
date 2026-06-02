@@ -2156,15 +2156,15 @@
 
   function getExtraHint(category) {
     const hintMap = {
-      allatok: "Állat neve",
-      etelek: "Étel vagy hozzávaló neve",
-      foldrajz: "Földrajzi fogalom",
-      sport: "Sport vagy mozgás",
-      tudomany: "Tudományos fogalom",
-      jarmuvek: "Jármű vagy közlekedési eszköz",
-      zene: "Zenei fogalom"
+      allatok: "Ez egy állat neve.",
+      etelek: "Ez egy étel vagy hozzávaló neve.",
+      foldrajz: "Ez egy földrajzi fogalom.",
+      sport: "Ez egy sporttal vagy mozgással kapcsolatos szó.",
+      tudomany: "Ez egy tudományos fogalom.",
+      jarmuvek: "Ez egy jármű vagy közlekedési eszköz neve.",
+      zene: "Ez egy zenei fogalom."
     };
-    return hintMap[category] || "Szó";
+    return hintMap[category] || "Ez egy szó.";
   }
 
   function addExtraCategoryWords() {
@@ -2172,7 +2172,7 @@
       Object.entries(diffs).forEach(([diff, words]) => {
         const extraItems = words.map(word => ({
           word,
-          hint: getExtraHint(category) + " (" + diff + ")",
+          hint: getExtraHint(category) + " (" + diff + " nehézség)",
           diff
         }));
         categoryWords[category] = categoryWords[category].concat(extraItems);
@@ -2301,7 +2301,7 @@
         const words = createCompoundList(sets.roots, sets.suffixes, 200);
         const extraItems = words.map(word => ({
           word,
-          hint: getExtraHint(category) + " (kompozit)",
+          hint: getExtraHint(category) + " (összetett szó)",
           diff
         }));
         categoryWords[category] = categoryWords[category].concat(extraItems);
@@ -2418,7 +2418,7 @@
         const words = createCompoundList(sets.roots, sets.suffixes, 200);
         const extraItems = words.map(word => ({
           word,
-          hint: getExtraHint(category) + " (kompozit 2)",
+          hint: getExtraHint(category) + " (összetett szó)",
           diff
         }));
         categoryWords[category] = categoryWords[category].concat(extraItems);
