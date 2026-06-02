@@ -2032,6 +2032,438 @@
     vegyes: []  // dinamikusan töltjük fel
   };
 
+  const extraCategoryWords = {
+    allatok: {
+      easy: [
+        "csibe","pulyka","veréb","fecske","gólya","harkály","rigó","cinege","szajkó","sirály",
+        "ponty","lazac","sügér","tokhal","tintahal","polip","angolna","kagyló","gyík","varangy",
+        "szitakötő","katicabogár","csótány","pók","hangya"
+      ],
+      medium: [
+        "fácán","kakukk","pacsirta","gém","kánya","héja","sólyom","süllő","csuka","harcsa",
+        "kárász","bivaly","muflon","bölény","vidra","görény","nyest","menyét","hermelin","csincsilla",
+        "páva","fóka","oroszlánfóka","tarajosgőte","szalamandra","leguán","varánusz","nyílméregbéka","kecskebéka","mosómaci"
+      ],
+      hard: [
+        "dinoszaurusz","kaméleon","piranha","tarantula","skorpió","iguána","axolotl","platipusz","okapi","narvál",
+        "manátusz","koboldmaki","óriásvidra","tapír","binturong","kakapo","bonobo","csimpánz","kacsacsőrű","anaconda",
+        "albatrosz","herkulesbogár","bálna","tigris","jaguár","leopárd","jegesmedve","víziló","oroszlán","orangután"
+      ]
+    },
+    etelek: {
+      easy: [
+        "zsemle","pogácsa","pirítós","gyümölcslé","szalámi","sonka","kolbász","krumpli","rizs","tészta",
+        "pizza","kenyér","sajt","tojás","tej","vaj","méz","cukor","só","olaj",
+        "ecet","paradicsom","uborka","sárgarépa","hagyma"
+      ],
+      medium: [
+        "tejföl","joghurt","mozzarella","szalámi","sonka","kolbász","szendvics","hamburger","sushi","rakottkrumpli",
+        "bableves","rántotta","burrito","gyros","quiche","falafel","zserbó","sacher","piskóta","keksz",
+        "müzli","granola","omlett","palacsinta","rétes","fagylalt","csokoládé","tiramisu","lecsó","pörkölt"
+      ],
+      hard: [
+        "kürtőskalács","dobostorta","somlóigaluska","boeufstroganoff","tiramisu","croissant","bruschetta","gazpacho","ceviche","ratatouille",
+        "panzanella","bouillabaisse","carpaccio","gnocchi","tzatziki","fondant","ricotta","bechamel","roux","consommé",
+        "couscous","sashimi","maki","baklava","kimchi","ramen","adobo","padthai","pho","churros"
+      ]
+    },
+    foldrajz: {
+      easy: [
+        "dűne","plató","fennsík","öböl","kanyon","sziget","határ","térkép","hegység","országhatár",
+        "part","patak","híd","erdő","falu","város","mező","puszta","domb","völgy",
+        "mocsár","jég","hó","eső","árvíz"
+      ],
+      medium: [
+        "kontinens","földrengés","gleccser","félsziget","vízesés","medence","atoll","lagúna","fjord","szavanna",
+        "tundra","tajga","delta","övezet","klíma","földkéreg","litoszféra","geoid","árvíz","szárazság",
+        "óceán","szélesség","meridián","éghajlat","vidék","lávamező","sarkvidék","sarkpont","napjég","tengeriáramlat"
+      ],
+      hard: [
+        "paleoklíma","geotermikus","orográfia","lemezek","epicentrum","gyűrődés","geofizika","paleontológia","geokémia","permafroszt",
+        "krioszféra","szubkontinens","szubtrópusi","monszun","ozonréteg","konvektív","atmoszféra","biom","hullámzás","egyenlítő",
+        "seizmológia","geodézia","topográfia","geomorfológia","magmás","kőzet","alluvium","áramlás","kontinensgyűrődés","plató"
+      ]
+    },
+    sport: {
+      easy: [
+        "foci","úszás","futás","ugrás","dobás","síelés","tenisz","birkózás","kerékpár","lovaglás",
+        "golf","boksz","karate","judo","torna","evezés","vívás","íjászat","darts","sakk",
+        "szumó","kötélhúzás","korcsolya","pingpong","úszómedence"
+      ],
+      medium: [
+        "labdarúgás","kosárlabda","röplabda","tollaslabda","vízilabda","kerékpározás","kajakozás","asztalitenisz","kézilabda","rögbi",
+        "krikett","baseball","jégkorong","curling","bobszán","snowboard","szörfözés","búvárkodás","atlétika","fallabda",
+        "siklóernyő","sportlövészet","kajak","kenu","vitorlázás","görkorcsolya","roller","edzés","verseny","triatlon"
+      ],
+      hard: [
+        "maratonfutás","szinkronúszás","ejtőernyőzés","sziklamászás","triatlon","pentathlon","tájfutás","decathlon","ultramaraton","hegyikerékpár",
+        "falmászás","hosszútávfutás","biatlon","sportlövészet","vitorlázás","kötélmászás","motorsport","lovastusa","gátfutás","súlyemelés",
+        "magasugrás","sallangos","karatebajnok","vívóbajnok","ülőrúgás","úszóverseny","hőlégballon","pilóta","kupagyőztes","staféta"
+      ]
+    },
+    tudomany: {
+      easy: [
+        "fizika","kémia","biológia","atom","energia","fény","hang","hő","erő","sebesség",
+        "tömeg","súly","nyomás","hőmérséklet","elektromosság","mágnes","atommag","mérés","elmélet","kutatás",
+        "modell","vegyület","sejt","vírus","baktérium"
+      ],
+      medium: [
+        "matematika","informatika","csillagászat","gravitáció","evolúció","fotoszintézis","sejtmag","kromoszóma","molekula","reakció",
+        "periódus","frekvencia","hullámhossz","ökológia","biokémia","biofizika","katalízis","plazma","ion","spektrum",
+        "gyorsulás","polarizáció","napenergia","üzemanyag","magfizika","közeg","vegyérték","sav","bázis"
+      ],
+      hard: [
+        "genetika","neurológia","pszichológia","meteorológia","oceanográfia","vulkanológia","asztrofizika","kozmológia","farmakológia","epidemiológia",
+        "nanotechnológia","biotechnológia","kvantumfizika","termodinamika","geokémia","szupervezetés","környezettan","szubatomi","nanoanyag","neurobiológia",
+        "immunológia","seizmológia","paleontológia","antropológia","archeológia","mikrobiológia","enzim","hormon","DNS","RNS"
+      ]
+    },
+    jarmuvek: {
+      easy: [
+        "busz","villamos","metro","autó","kamion","teherautó","kerékpár","motor","roller","taxi",
+        "repülő","hajó","vitorlás","komp","csónak","kenu","tank","daru","mentő","tűzoltó",
+        "kocsi","mozdony","motorkerékpár","moped","segway"
+      ],
+      medium: [
+        "lakókocsi","jacht","motorkerékpár","robogó","villanyautó","hőlégballon","helikopter","repülőgép","katamarán","űrhajó",
+        "tengeralattjáró","szubszonda","zeplin","monorail","légpárnás","gőzhajó","szárnyashajó","autóbusz","mentőautó","rendőrautó",
+        "csuklósbusz","drón","taxijárat","vontató","áruszállító","lakóautó","kempingautó","futármotor","tűzoltóautó","mentőhelikopter"
+      ],
+      hard: [
+        "pilótafülke","sugárhajtás","reaktorgép","turbojet","rakéta","űrsikló","turbófeltöltő","önvezetőautó","drón","szuperautó",
+        "űrhajózás","légiutas","hajtómű","irányítás","hidraulika","stabilizátor","sárvédő","alváz","differenciál","sebességváltó",
+        "kormánykerék","fékrendszer","motorblokk","hajtóerő","turbina","közlekedés","kormányzás","útvonal","repülőtér","parkoló"
+      ]
+    },
+    zene: {
+      easy: [
+        "gitár","dob","zongora","hegedű","fuvola","trombita","ének","dal","ritmus","dallam",
+        "hang","kórus","banda","koncert","lemez","mikrofon","rádió","jazz","pop","rock",
+        "diszkó","rap","blues","folk","opera"
+      ],
+      medium: [
+        "szaxofon","szimfónia","karmester","akkord","tempo","basszus","szoprán","tenor","bariton","klarinét",
+        "cselló","brácsa","hárfa","orgona","szintetizátor","metronóm","zeneszerző","hangszín","szóló","opera",
+        "hangjegy","skála","duó","zenekar","pedál","stúdió","leitmotív","hangminta","mixelés","hangmérnök"
+      ],
+      hard: [
+        "filharmónia","kontrapunkt","polifónia","moduláció","improvizáció","szimfonikus","szonáta","kvartett","transzponálás","atonális",
+        "partitúra","dallamvonal","fúga","tonalitás","harmonizáció","kromatika","ritmika","szolfézs","barokk","klasszikus",
+        "avantgárd","szonátás","koncertmester","szekvenszer","midi","olvasás","szekció","együttes","tematika","harmonika"
+      ]
+    }
+  };
+
+  function getExtraHint(category) {
+    const hintMap = {
+      allatok: "Állat neve",
+      etelek: "Étel vagy hozzávaló neve",
+      foldrajz: "Földrajzi fogalom",
+      sport: "Sport vagy mozgás",
+      tudomany: "Tudományos fogalom",
+      jarmuvek: "Jármű vagy közlekedési eszköz",
+      zene: "Zenei fogalom"
+    };
+    return hintMap[category] || "Szó";
+  }
+
+  function addExtraCategoryWords() {
+    Object.entries(extraCategoryWords).forEach(([category, diffs]) => {
+      Object.entries(diffs).forEach(([diff, words]) => {
+        const extraItems = words.map(word => ({
+          word,
+          hint: getExtraHint(category) + " (" + diff + ")",
+          diff
+        }));
+        categoryWords[category] = categoryWords[category].concat(extraItems);
+      });
+    });
+  }
+
+  addExtraCategoryWords();
+
+  const compoundCategoryWords = {
+    allatok: {
+      easy: {
+        roots: ["kutya","macska","ló","madár","béka","hal","farkas","róka","medve","tigris","tyúk","pulyka","veréb","fecske","gólya","bagoly","kacsa","kakas","papagáj","sün"],
+        suffixes: ["fészek","ház","etető","tanya","farm","család","szem","nyom"]
+      },
+      medium: {
+        roots: ["párduc","zebra","antilop","bivaly","muflon","vidra","görény","nyest","csincsilla","páva","kenguru","papagáj","delfin","fóka","oroszlán","sólyom","kakukk","fácán","hód","hermelin"],
+        suffixes: ["erdő","vad","csapat","nyom","gyűrű","király","szem","torony"]
+      },
+      hard: {
+        roots: ["kaméleon","piranha","tarantula","skorpió","axolotl","narvál","okapi","kacsacsőrű","kakapo","varánusz","aligátor","orangután","jaguár","leopárd","jegesmedve","binturong","dodo","papagájundi","kolibri","polip"],
+        suffixes: ["faj","király","őrző","kincs","fészke","élete","titok","monda"]
+      }
+    },
+    etelek: {
+      easy: {
+        roots: ["alma","kenyér","sajt","tej","tojás","cukor","só","olaj","méz","krumpli","rizs","tészta","pizza","kávé","tea","gyümölcs","zöldség","hagyma","paprika","uborka"],
+        suffixes: ["leves","puding","torta","szósz","szelet","darab","saláta","krém"]
+      },
+      medium: {
+        roots: ["palacsinta","burrito","gyros","saláta","csirke","hal","rizs","burgonya","fagylalt","csokoládé","tiramisu","rétes","keksz","piskóta","szalámi","sonka","kolbász","müzli","granola","omlett"],
+        suffixes: ["szósz","szelet","tál","adag","krém","mártás","öntet","keverék"]
+      },
+      hard: {
+        roots: ["kürtőskalács","dobostorta","somlóigaluska","bruschetta","ratatouille","carpaccio","gnocchi","tiramisu","bouillabaisse","kimchi","sushi","ceviche","gazpacho","fondant","ricotta","bechamel","couscous","sashimi","maki","baklava"],
+        suffixes: ["recept","specialitás","tál","íz","krém","szelet","mód","különlegesség"]
+      }
+    },
+    foldrajz: {
+      easy: {
+        roots: ["tenger","hegy","domb","völgy","sziget","patak","híd","erdő","part","falu","mező","puszta","sivatag","jég","hó","eső","árapály","kanyon","öböl","ösvény"],
+        suffixes: ["part","térkép","út","vidék","határ","oldal","sáv","föld"]
+      },
+      medium: {
+        roots: ["kontinens","gleccser","félsziget","lagúna","fjord","szavanna","tundra","tajga","delta","övezet","óceán","medence","fennsík","dűne","karszt","mocsár","barlang","földrengés","szél","klíma"],
+        suffixes: ["zóna","terület","körzet","klíma","kép","szakasz","környezet","réteg"]
+      },
+      hard: {
+        roots: ["paleoklíma","geotermikus","orográfia","lemezek","epicentrum","geofizika","geokémia","krioszféra","szubkontinens","atmoszféra","seizmológia","geodézia","topográfia","geomorfológia","talaj","hegység","vulkanizmus","ásvány","permafroszt","ozonréteg"],
+        suffixes: ["tan","kutatás","elemzés","könyv","rendszer","jelenség","modell","számítás"]
+      }
+    },
+    sport: {
+      easy: {
+        roots: ["foci","úszás","futás","ugrás","dobás","síelés","tenisz","birkózás","kerékpár","lovaglás","golf","boksz","karate","judo","torna","evezés","vívás","íjászat","darts","sakk"],
+        suffixes: ["pálya","meccs","labda","gyakorlat","edzés","trükk","csapat","kupa"]
+      },
+      medium: {
+        roots: ["labdarúgás","kosárlabda","röplabda","tollaslabda","vízilabda","kézilabda","rögbi","baseball","jégkorong","curling","bobszán","snowboard","szörfözés","búvárkodás","atlétika","fallabda","siklóernyő","sportlövészet","kajak","kenu"],
+        suffixes: ["kupa","bajnokság","csapat","edzés","terem","verseny","pálya","gyakorlat"]
+      },
+      hard: {
+        roots: ["maraton","triatlon","pentathlon","decathlon","ultramaraton","biatlon","sportlövészet","tájfutás","hegyikerékpár","sziklamászás","falmászás","hosszútávfutás","gátfutás","súlyemelés","magasugrás","sprint","váltó","kapus","edző","bíró"],
+        suffixes: ["verseny","edzés","csapat","stílus","feladat","edző","program","képzés"]
+      }
+    },
+    tudomany: {
+      easy: {
+        roots: ["fizika","kémia","biológia","atom","energia","fény","hang","hő","erő","sebesség","tömeg","súly","nyomás","mérés","világítás","feszültség","áram","elektron","ion","kutató"],
+        suffixes: ["óra","könyv","tan","kísérlet","adat","mérés","modell","átalakítás"]
+      },
+      medium: {
+        roots: ["matematika","informatika","csillagászat","gravitáció","evolúció","fotoszintézis","molekula","reakció","ion","plazma","ökológia","biokémia","biofizika","katalízis","spektrum","hullám","frekvencia","periódus","kromoszóma","sejtmag"],
+        suffixes: ["tan","labor","kutatás","modell","szám","tudós","elemzés","szoftver"]
+      },
+      hard: {
+        roots: ["genetika","neurológia","meteorológia","oceanográfia","asztrofizika","kozmológia","nanotechnológia","kvantumfizika","termodinamika","geokémia","szupervezetés","környezettan","szubatomi","nanoanyag","neurobiológia","immunológia","seizmológia","paleontológia","archeológia","mikrobiológia"],
+        suffixes: ["elmélet","tan","kutatás","elemzés","könyv","mérés","modul","technika","probléma","eszköz"]
+      }
+    },
+    jarmuvek: {
+      easy: {
+        roots: ["busz","villamos","metro","autó","kamion","teherautó","kerékpár","motor","roller","taxi","repülő","hajó","vitorlás","komp","csónak","kenu","tank","daru","mentő","tűzoltó"],
+        suffixes: ["megálló","út","vezető","járat","pálya","parkoló","terem","kapu"]
+      },
+      medium: {
+        roots: ["repülő","hajó","vitorlás","komp","csónak","kenu","tank","daru","jacht","motorkerékpár","katamarán","űrhajó","tengeralattjáró","szubszonda","zeplin","monorail","légpárnás","gőzhajó","szárnyashajó","autóbusz"],
+        suffixes: ["út","szállító","vezetés","verseny","baleset","start","pálya","háló"]
+      },
+      hard: {
+        roots: ["tengeralattjáró","űrhajó","helikopter","sugárhajtás","űrsikló","rakéta","szubszonda","katamarán","légpárnás","légcsavar","pilótafülke","hajtómű","turbina","turbojet","reaktorgép","kormánykerék","fékrendszer","alváz","hidraulika","navigáció"],
+        suffixes: ["technika","vezérlés","hajtómű","felépítés","vizsgálat","modellezés","alkatrész","rendszer"]
+      }
+    },
+    zene: {
+      easy: {
+        roots: ["gitár","dob","zongora","hegedű","fuvola","trombita","ének","dal","ritmus","dallam","hang","kórus","banda","koncert","lemez","mikrofon","rádió","jazz","pop","rock"],
+        suffixes: ["húr","koncert","terem","szöveg","lemez","hang","jegy","stúdió"]
+      },
+      medium: {
+        roots: ["karmester","akkord","tempo","basszus","szoprán","tenor","klarinét","cselló","hárfa","orgona","szintetizátor","metronóm","zeneszerző","hangszín","szóló","opera","hangjegy","skála","duó","zenekar"],
+        suffixes: ["mű","szólam","felvétel","stúdió","koncert","hang","jegy","tétel"]
+      },
+      hard: {
+        roots: ["filharmónia","kontrapunkt","polifónia","moduláció","improvizáció","szonáta","kvartett","atonális","partitúra","fúga","harmonizáció","kromatika","ritmika","szolfézs","barokk","klasszikus","avantgárd","koncertmester","szekvenszer","midi"],
+        suffixes: ["tan","elmélet","elemzés","könyv","gyakorlat","művészet","stúdium","kompozíció"]
+      }
+    }
+  };
+
+  function createCompoundList(roots, suffixes, limit = 120) {
+    const results = [];
+    for (const root of roots) {
+      for (const suffix of suffixes) {
+        if (results.length >= limit) break;
+        results.push(root + suffix);
+      }
+      if (results.length >= limit) break;
+    }
+    return results;
+  }
+
+  function addCompoundCategoryWords() {
+    Object.entries(compoundCategoryWords).forEach(([category, diffs]) => {
+      Object.entries(diffs).forEach(([diff, sets]) => {
+        const words = createCompoundList(sets.roots, sets.suffixes, 200);
+        const extraItems = words.map(word => ({
+          word,
+          hint: getExtraHint(category) + " (kompozit)",
+          diff
+        }));
+        categoryWords[category] = categoryWords[category].concat(extraItems);
+      });
+    });
+  }
+
+  addCompoundCategoryWords();
+
+  const compoundCategoryWords2 = {
+    allatok: {
+      easy: {
+        roots: ["nyúl","lúd","vaddisznó","szarvas","kecske","tehén","fácán","hód","ragadozó","mókus","pocok","patkány","őz","sün","szitakötő","katicabogár","szalamandra","fekete", "kakukk", "harkály"],
+        suffixes: ["fészek","ház","etető","tanya","farm","csapat","mező","út","szem","varázs"]
+      },
+      medium: {
+        roots: ["zebra","antilop","bivaly","muflon","vidra","görény","nyest","menyét","hermelin","csincsilla","páva","kacsa","kakas","gém","kánya","sólyom","csuka","harcsa","kárász","bölény"],
+        suffixes: ["erdő","vad","csapat","nyom","gyűrű","király","torony","utca","telep","mozi"]
+      },
+      hard: {
+        roots: ["aligátor","orangután","jaguár","leopárd","jegesmedve","binturong","kakapo","bonobo","dodo","papagájundi","polip","fókazár","varánusz","iguna","anatida","harcsa","angolna","krokodil","kaméleon","tarantula"],
+        suffixes: ["faj","király","őrző","kincs","fészke","élete","titok","monda","szahara","gondja"]
+      }
+    },
+    etelek: {
+      easy: {
+        roots: ["zsemle","pogácsa","pirítós","gyümölcslé","szalámi","sonka","kolbász","fokhagyma","petrezselyem","menta","citrom","banán","körte","barack","eper","málna","áfonya","kókusz","avokádó","mandula"],
+        suffixes: ["leves","puding","torta","szósz","szelet","darab","saláta","krém","adag","csésze"]
+      },
+      medium: {
+        roots: ["kalács","keksz","kása","müzli","granola","omlett","leves","puding","saláta","szendvics","hamburger","sushi","rakottkrumpli","bableves","rántotta","gyros","quiche","falafel","zserbó","sacher"],
+        suffixes: ["szósz","szelet","tál","adag","krém","mártás","öntet","keverék","szelet","adag" ]
+      },
+      hard: {
+        roots: ["kürtőskalács","dobostorta","somlóigaluska","boeufstroganoff","tiramisu","croissant","bruschetta","gazpacho","ceviche","ratatouille","panzanella","bouillabaisse","carpaccio","gnocchi","tzatziki","fondant","ricotta","bechamel","roux","consommé"],
+        suffixes: ["recept","specialitás","tál","íz","krém","szelet","mód","különlegesség","falat","élvezet"]
+      }
+    },
+    foldrajz: {
+      easy: {
+        roots: ["tenger","hegy","domb","völgy","sziget","patak","híd","erdő","part","falu","mező","puszta","sivatag","jég","hó","eső","árapály","kanyon","öböl","ösvény"],
+        suffixes: ["part","térkép","út","vidék","határ","oldal","sáv","föld","név","kör" ]
+      },
+      medium: {
+        roots: ["kontinens","gleccser","félsziget","lagúna","fjord","szavanna","tundra","tajga","delta","övezet","óceán","medence","fennsík","dűne","karszt","mocsár","barlang","táj","zóna","éghajlat"],
+        suffixes: ["zóna","terület","körzet","klíma","kép","szakasz","környezet","réteg","tér","élet"]
+      },
+      hard: {
+        roots: ["paleoklíma","geotermikus","orográfia","lemezek","epicentrum","geofizika","geokémia","krioszféra","szubkontinens","atmoszféra","seizmológia","geodézia","topográfia","geomorfológia","talaj","hegység","vulkanizmus","ásvány","permafroszt","ozonréteg"],
+        suffixes: ["tan","kutatás","elemzés","könyv","rendszer","jelenség","modell","számítás","tükör","út"]
+      }
+    },
+    sport: {
+      easy: {
+        roots: ["foci","úszás","futás","ugrás","dobás","síelés","tenisz","birkózás","kerékpár","lovaglás","golf","boksz","karate","judo","torna","evezés","vívás","íjászat","darts","sakk"],
+        suffixes: ["pálya","meccs","labda","gyakorlat","edzés","trükk","csapat","kupa","verseny","óra"]
+      },
+      medium: {
+        roots: ["labdarúgás","kosárlabda","röplabda","tollaslabda","vízilabda","kézilabda","rögbi","baseball","jégkorong","curling","bobszán","snowboard","szörfözés","búvárkodás","atlétika","fallabda","siklóernyő","sportlövészet","kajak","kenu"],
+        suffixes: ["kupa","bajnokság","csapat","edzés","terem","verseny","pálya","gyakorlat","központ","vezető"]
+      },
+      hard: {
+        roots: ["maraton","triatlon","pentathlon","decathlon","ultramaraton","biatlon","sportlövészet","tájfutás","hegyikerékpár","sziklamászás","falmászás","hosszútávfutás","gátfutás","súlyemelés","magasugrás","sprint","váltó","kapus","edző","bíró"],
+        suffixes: ["verseny","edzés","csapat","stílus","feladat","edző","program","képzés","központ","technika"]
+      }
+    },
+    tudomany: {
+      easy: {
+        roots: ["fizika","kémia","biológia","atom","energia","fény","hang","hő","erő","sebesség","tömeg","súly","nyomás","mérés","világítás","feszültség","áram","elektron","ion","kutató"],
+        suffixes: ["óra","könyv","tan","kísérlet","adat","mérés","modell","átalakítás","görbéje","szám" ]
+      },
+      medium: {
+        roots: ["matematika","informatika","csillagászat","gravitáció","evolúció","fotoszintézis","molekula","reakció","ion","plazma","ökológia","biokémia","biofizika","katalízis","spektrum","hullám","frekvencia","periódus","kromoszóma","sejtmag"],
+        suffixes: ["tan","labor","kutatás","modell","szám","tudós","elemzés","szoftver","rendszer","koncepció"]
+      },
+      hard: {
+        roots: ["genetika","neurológia","meteorológia","oceanográfia","asztrofizika","kozmológia","nanotechnológia","kvantumfizika","termodinamika","geokémia","szupervezetés","környezettan","szubatomi","nanoanyag","neurobiológia","immunológia","seizmológia","paleontológia","archeológia","mikrobiológia"],
+        suffixes: ["elmélet","tan","kutatás","elemzés","könyv","mérés","modul","technika","probléma","eszköz"]
+      }
+    },
+    jarmuvek: {
+      easy: {
+        roots: ["busz","villamos","metro","autó","kamion","teherautó","kerékpár","motor","roller","taxi","repülő","hajó","vitorlás","komp","csónak","kenu","tank","daru","mentő","tűzoltó"],
+        suffixes: ["megálló","út","vezető","járat","pálya","parkoló","terem","kapu","háló","irány"]
+      },
+      medium: {
+        roots: ["repülő","hajó","vitorlás","komp","csónak","kenu","tank","daru","jacht","motorkerékpár","katamarán","űrhajó","tengeralattjáró","szubszonda","zeplin","monorail","légpárnás","gőzhajó","szárnyashajó","autóbusz"],
+        suffixes: ["út","szállító","vezetés","verseny","baleset","start","pálya","háló","raktár","kör" ]
+      },
+      hard: {
+        roots: ["tengeralattjáró","űrhajó","helikopter","sugárhajtás","űrsikló","rakéta","szubszonda","katamarán","légpárnás","légcsavar","pilótafülke","hajtómű","turbina","turbojet","reaktorgép","kormánykerék","fékrendszer","alváz","hidraulika","navigáció"],
+        suffixes: ["technika","vezérlés","hajtómű","felépítés","vizsgálat","modellezés","alkatrész","rendszer","irány","terv"]
+      }
+    },
+    zene: {
+      easy: {
+        roots: ["gitár","dob","zongora","hegedű","fuvola","trombita","ének","dal","ritmus","dallam","hang","kórus","banda","koncert","lemez","mikrofon","rádió","jazz","pop","rock"],
+        suffixes: ["húr","koncert","terem","szöveg","lemez","hang","jegy","stúdió","ritmus","rész"]
+      },
+      medium: {
+        roots: ["karmester","akkord","tempo","basszus","szoprán","tenor","klarinét","cselló","hárfa","orgona","szintetizátor","metronóm","zeneszerző","hangszín","szóló","opera","hangjegy","skála","duó","zenekar"],
+        suffixes: ["mű","szólam","felvétel","stúdió","koncert","hang","jegy","tétel","terv","gyakorlat"]
+      },
+      hard: {
+        roots: ["filharmónia","kontrapunkt","polifónia","moduláció","improvizáció","szonáta","kvartett","atonális","partitúra","fúga","harmonizáció","kromatika","ritmika","szolfézs","barokk","klasszikus","avantgárd","koncertmester","szekvenszer","midi"],
+        suffixes: ["tan","elmélet","elemzés","könyv","gyakorlat","művészet","studium","kompozíció","történet","struktúra"]
+      }
+    }
+  };
+
+  function addCompoundCategoryWords2() {
+    Object.entries(compoundCategoryWords2).forEach(([category, diffs]) => {
+      Object.entries(diffs).forEach(([diff, sets]) => {
+        const words = createCompoundList(sets.roots, sets.suffixes, 200);
+        const extraItems = words.map(word => ({
+          word,
+          hint: getExtraHint(category) + " (kompozit 2)",
+          diff
+        }));
+        categoryWords[category] = categoryWords[category].concat(extraItems);
+      });
+    });
+  }
+
+  addCompoundCategoryWords2();
+
+  Object.keys(categoryWords).forEach(cat => {
+    if (cat !== "vegyes") categoryWords[cat] = dedupeWordList(categoryWords[cat]);
+  });
+
+  function dedupeWordList(list) {
+    const seen = new Set();
+    return list.filter(item => {
+      if (seen.has(item.word)) return false;
+      seen.add(item.word);
+      return true;
+    });
+  }
+
+  function loadGlobalUsedWords() {
+    return new Set(JSON.parse(localStorage.getItem(GLOBAL_USED_WORDS_KEY) || "[]"));
+  }
+
+  function saveGlobalUsedWords(set) {
+    localStorage.setItem(GLOBAL_USED_WORDS_KEY, JSON.stringify([...set]));
+  }
+
+  function addGlobalUsedWord(word) {
+    const set = loadGlobalUsedWords();
+    if (!set.has(word)) {
+      set.add(word);
+      saveGlobalUsedWords(set);
+    }
+  }
+
+  // Deduplikáljuk automatikusan a szólistákat, ha voltak véletlen ismétlések
+  Object.keys(categoryWords).forEach(cat => {
+    if (cat !== "vegyes" && Array.isArray(categoryWords[cat])) {
+      categoryWords[cat] = dedupeWordList(categoryWords[cat]);
+    }
+  });
+
   // Vegyes = minden kategóriából véletlenszerű mix
   categoryWords.vegyes = Object.entries(categoryWords)
     .filter(([k]) => k !== "vegyes")
@@ -2520,6 +2952,7 @@
       clearUsedIndices(poolKey);
     }
 
+    const globalUsed = loadGlobalUsedWords();
     let idx;
     if (retry && usedIndices.length > 0) {
       // Újrapróbálás: ugyanaz a szó (utolsó használt szó szövege alapján)
@@ -2529,19 +2962,20 @@
     } else {
       // Véletlenszerű, még nem használt szó
       const usedWords = new Set(usedIndices);
-      const available = pool
+      const availableByWord = pool
         .map((w, i) => ({ w, i }))
-        .filter(({ w }) => !usedWords.has(w.word));
-      if (available.length === 0) {
+        .filter(({ w }) => !usedWords.has(w.word) && !globalUsed.has(w.word));
+      if (availableByWord.length === 0) {
         usedIndices = [];
         clearUsedIndices(poolKey);
         idx = Math.floor(Math.random() * pool.length);
       } else {
-        const pick = available[Math.floor(Math.random() * available.length)];
+        const pick = availableByWord[Math.floor(Math.random() * availableByWord.length)];
         idx = pick.i;
       }
       usedIndices.push(pool[idx].word);
       saveUsedIndices(poolKey, usedIndices);
+      addGlobalUsedWord(pool[idx].word);
     }
 
     currentWord = pool[idx].word.toLowerCase();
