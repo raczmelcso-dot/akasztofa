@@ -2569,6 +2569,7 @@
   let currentLevel = 1;
   let usedIndices  = [];
   let levelStartTime = 0;
+  const GLOBAL_USED_WORDS_KEY = "global_used_words";
 
   function loadUsedIndices(key) {
     return JSON.parse(localStorage.getItem("used_" + key) || "[]");
